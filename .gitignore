@@ -1,34 +1,55 @@
-# Dependencies
+# =========================
+# Node / Frontend
+# =========================
 node_modules/
-
-# Build
+frontend/node_modules/
+frontend/dist/
 dist/
 build/
 
-# Environment
+# =========================
+# Environment variables
+# =========================
 .env
-.env.local
+.env.*
+!.env.example
 
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+env/
+backend/venv/
+
+# =========================
+# Django
+# =========================
+db.sqlite3
+backend/db.sqlite3
+media/
+staticfiles/
+
+# =========================
 # Logs
+# =========================
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# =========================
 # macOS
+# =========================
 .DS_Store
 
-# Vite
-.vite
-
-# Python
-__pycache__/
-*.pyc
-
-# Django
-db.sqlite3
-media/
-staticfiles/
-
+# =========================
 # IDE
+# =========================
 .vscode/
 .idea/
