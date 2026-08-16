@@ -1,20 +1,15 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://127.0.0.1:8000/api/v1",
+  baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// ------------------------
-// Request Interceptor
-// ------------------------
-
+// Attach access token to protected requests
 API.interceptors.request.use(
   (config) => {
-
-    // Don't attach token to public routes
     if (
       config.url?.includes("/auth/login/") ||
       config.url?.includes("/auth/signup/") ||
@@ -30,35 +25,29 @@ API.interceptors.request.use(
     }
 
     return config;
-
   },
   (error) => Promise.reject(error)
 );
 
-
-// ------------------------
-// Response Interceptor
-// ------------------------
-
+// Automatically refresh expired access tokens
 API.interceptors.response.use(
-
   (response) => response,
 
   async (error) => {
-
     const originalRequest = error.config;
 
     if (
       error.response?.status === 401 &&
-      !originalRequest._retry
+      !originalRequest?._retry
     ) {
-
       originalRequest._retry = true;
 
       try {
+        const refreshToken = localStorage.getItem("refreshToken");
 
-        const refreshToken =
-          localStorage.getItem("refreshToken");
+        if (!refreshToken) {
+          throw new Error("No refresh token available");
+        }
 
         const res = await API.post(
           "/auth/refresh/",
@@ -83,24 +72,19 @@ API.interceptors.response.use(
           `Bearer ${res.data.access}`;
 
         return API(originalRequest);
-
       } catch (refreshError) {
-
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
+        localStorage.removeItem("user");
 
         window.location.href = "/";
 
         return Promise.reject(refreshError);
-
       }
-
     }
 
     return Promise.reject(error);
-
   }
-
 );
 
 export default API;
