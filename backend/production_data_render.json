@@ -181,7 +181,7 @@
       "transaction_reference": "",
       "status": "SUCCESS",
       "remarks": "First installment",
-      "received_by": "2f05dac0-ccdc-492e-adda-9c4c03eefdcc",
+      "received_by": null,
       "payment_datetime": "2026-08-05T05:29:15.453Z"
     }
   },
