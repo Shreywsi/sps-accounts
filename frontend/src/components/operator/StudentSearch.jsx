@@ -19,7 +19,7 @@ export default function StudentSearch({ onSearch }) {
 
       <form
         onSubmit={handleSubmit}
-        className="flex gap-3"
+        className="flex flex-col sm:flex-row gap-3"
       >
         <input
           type="text"
@@ -31,7 +31,7 @@ export default function StudentSearch({ onSearch }) {
 
         <button
           type="submit"
-          className="bg-blue-600 text-white px-6 rounded-md"
+          className="bg-blue-600 text-white px-6 rounded-md w-full sm:w-auto"
         >
           Search
         </button>

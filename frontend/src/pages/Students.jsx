@@ -64,79 +64,87 @@ const handleReopen = async (id) => {
     <div>
       <h1 className="text-2xl font-semibold mb-6">Students</h1>
 
-      <table className="w-full border">
-        <thead>
-          <tr>
-            <th>Admission No</th>
-            <th>Name</th>
-            <th>Class</th>
-            <th>Section</th>
-            <th>Phone</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
+      <div className="overflow-x-auto bg-white border rounded-md">
+        <table className="min-w-[720px] w-full divide-y">
+          <thead className="bg-gray-50">
+            <tr className="text-left text-sm text-gray-600">
+              <th className="px-4 py-3">Admission No</th>
+              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Class</th>
+              <th className="px-4 py-3">Section</th>
+              <th className="px-4 py-3">Phone</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Action</th>
+            </tr>
+          </thead>
 
-        <tbody>
-{
-students.map((student)=>(
-<tr key={student.id}>
+          <tbody>
+            {students.map((student) => (
+              <tr
+                key={student.id}
+                className="border-b last:border-0 hover:bg-gray-50"
+              >
+                <td className="px-4 py-3">{student.admission_no}</td>
 
-<td>{student.admission_no}</td>
+                <td className="px-4 py-3">
+                  {student.first_name} {student.last_name}
+                </td>
 
-<td>
-{student.first_name} {student.last_name}
-</td>
+                <td className="px-4 py-3">{student.school_class_name}</td>
 
-<td>
-{student.school_class_name}
-</td>
+                <td className="px-4 py-3">{student.section_name}</td>
 
-<td>
-{student.section_name}
-</td>
+                <td className="px-4 py-3">{student.phone}</td>
 
-<td>
-{student.phone}
-</td>
+                <td className="px-4 py-3">{student.verification_status}</td>
 
-<td>
-{student.verification_status}
-</td>
-<td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    {student.verification_status === "PENDING" && (
+                      <>
+                        <button
+                          onClick={() => handleVerify(student.id)}
+                          className="px-3 py-1 bg-green-600 text-white rounded-md text-sm"
+                        >
+                          Verify
+                        </button>
 
-  {student.verification_status === "PENDING" && (
-    <>
-      <button onClick={() => handleVerify(student.id)}>
-        Verify
-      </button>
-
-      <button onClick={() => handleReject(student.id)}>
-        Reject
-      </button>
-    </>
-  )}
-
-
-  {student.verification_status === "VERIFIED" && (
-    <button onClick={() => handleReopen(student.id)}>
-      Reopen
-    </button>
-  )}
+                        <button
+                          onClick={() => handleReject(student.id)}
+                          className="px-3 py-1 bg-red-600 text-white rounded-md text-sm"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
 
 
-  {student.verification_status === "REJECTED" && (
-    <button onClick={() => handleReopen(student.id)}>
-      Review Again
-    </button>
-  )}
+                    {student.verification_status === "VERIFIED" && (
+                      <button
+                        onClick={() => handleReopen(student.id)}
+                        className="px-3 py-1 bg-yellow-500 text-white rounded-md text-sm"
+                      >
+                        Reopen
+                      </button>
+                    )}
 
-</td>
-</tr>
-))
-}
-</tbody>
-      </table>
+
+                    {student.verification_status === "REJECTED" && (
+                      <button
+                        onClick={() => handleReopen(student.id)}
+                        className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm"
+                      >
+                        Review Again
+                      </button>
+                    )}
+
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

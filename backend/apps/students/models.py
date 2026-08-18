@@ -1,3 +1,6 @@
+from django.db import models
+
+
 class FormField(models.Model):
     FIELD_TYPES = [
         ("text", "Text"),

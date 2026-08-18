@@ -1,17 +1,28 @@
+import { useState } from "react";
 import AdminSidebar from "../components/layout/AdminSidebar";
 import Navbar from "../components/layout/Navbar";
 
 export default function AdminLayout({ children }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
 
-      <AdminSidebar />
+      <AdminSidebar isOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-      <div className="flex-1">
+      {/* overlay for mobile when sidebar is open */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black bg-opacity-40 z-30"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
 
-        <Navbar />
+      <div className="flex-1 relative z-0">
 
-        <main className="p-6">
+        <Navbar onToggleSidebar={() => setMobileOpen((s) => !s)} />
+
+        <main className="p-4 md:p-6">
           {children}
         </main>
 

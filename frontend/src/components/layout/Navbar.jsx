@@ -1,32 +1,44 @@
-import { Languages, Bell, CircleUserRound } from "lucide-react";
+import { Languages, Bell, CircleUserRound, Menu } from "lucide-react";
 
-export default function Navbar() {
+export default function Navbar({ onToggleSidebar = () => {} }) {
   return (
     <header
-      className="
+      className={
+        `
       h-16
       bg-white
       border-b
-      px-8
+      px-4 md:px-8
       flex
       items-center
       justify-between
       sticky
       top-0
       z-20
-      "
+      `
+      }
     >
-      <div>
-        <h1 className="text-xl font-semibold text-gray-800">
-          Dashboard
-        </h1>
+      <div className="flex items-center gap-3">
+        <button
+          className="md:hidden p-2 rounded-md text-gray-700"
+          onClick={onToggleSidebar}
+          aria-label="Open menu"
+        >
+          <Menu size={20} />
+        </button>
 
-        <p className="text-sm text-gray-500">
-          School Financial Overview
-        </p>
+        <div>
+          <h1 className="text-xl font-semibold text-gray-800">
+            Dashboard
+          </h1>
+
+          <p className="text-sm text-gray-500">
+            School Financial Overview
+          </p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4 md:gap-6">
         <button
           className="
           flex

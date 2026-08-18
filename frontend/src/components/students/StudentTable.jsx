@@ -12,14 +12,14 @@ export default function StudentTable({ students = [] }) {
 
   return (
     <Card className="overflow-x-auto">
-      <table className="w-full">
+      <table className="min-w-[600px] w-full">
         <thead>
           <tr className="border-b text-left text-sm text-gray-500">
-            <th className="py-3">Admission No</th>
-            <th>Name</th>
-            <th>Class</th>
-            <th>Phone</th>
-            <th>Status</th>
+            <th className="px-4 py-3">Admission No</th>
+            <th className="px-4 py-3">Name</th>
+            <th className="px-4 py-3">Class</th>
+            <th className="px-4 py-3">Phone</th>
+            <th className="px-4 py-3">Status</th>
           </tr>
         </thead>
 
@@ -29,26 +29,16 @@ export default function StudentTable({ students = [] }) {
               key={student.id}
               className="border-b last:border-0 hover:bg-gray-50"
             >
-              <td className="py-4">
-                {student.admission_no}
-              </td>
+              <td className="px-4 py-4">{student.admission_no}</td>
 
-              <td>
-                {student.first_name} {student.last_name}
-              </td>
+              <td className="px-4 py-4">{student.first_name} {student.last_name}</td>
 
-              <td>
-                {student.current_class?.name || "-"}
-              </td>
+              <td className="px-4 py-4">{student.current_class?.name || "-"}</td>
 
-              <td>
-                {student.phone || "-"}
-              </td>
+              <td className="px-4 py-4">{student.phone || "-"}</td>
 
-              <td>
-                <span className="text-green-600">
-                  Active
-                </span>
+              <td className="px-4 py-4">
+                <span className="text-green-600">Active</span>
               </td>
             </tr>
           ))}
