@@ -1,6 +1,6 @@
 import {
   LayoutDashboard,
-  Wallet,
+  Users,
   LogOut,
 } from "lucide-react";
 
@@ -14,9 +14,9 @@ const menu = [
     icon: LayoutDashboard,
   },
   {
-    name: "Fee Collection",
-    path: "/operator/fees",
-    icon: Wallet,
+    name: "Students",
+    path: "/operator/students",
+    icon: Users,
   },
 ];
 

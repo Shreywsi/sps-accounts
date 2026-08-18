@@ -14,7 +14,7 @@ import AdminLayout from "../layouts/AdminLayout";
 import OperatorLayout from "../layouts/OperatorLayout";
 
 import OperatorDashboard from "../pages/operator/OperatorDashboard";
-import OperatorFeeCollection from "../pages/operator/OperatorFeeCollection";
+import OperatorStudents from "../pages/operator/OperatorStudents";
 
 export default function AppRoutes() {
   return (
@@ -87,16 +87,17 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
       <Route
-  path="/operator/fees"
-  element={
-    <ProtectedRoute allowedRole="OPERATOR">
-      <OperatorLayout>
-        <OperatorFeeCollection />
-      </OperatorLayout>
-    </ProtectedRoute>
-  }
-/>
+        path="/operator/students"
+        element={
+          <ProtectedRoute allowedRole="OPERATOR">
+            <OperatorLayout>
+              <OperatorStudents />
+            </OperatorLayout>
+          </ProtectedRoute>
+        }
+      />
 
 
       {/* 404 */}
