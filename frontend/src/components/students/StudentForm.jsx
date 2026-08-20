@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { getClasses, getSections } from "../../api/academics";
 import { createStudent, updateStudent } from "../../api/students";
-import { getCustomFields, createCustomField } from "../../api/customFields";
+import {
+  getCustomFields,
+  createCustomField,
+  deactivateCustomField,
+} from "../../api/customFields";
 
 const emptyForm = {
   admission_no: "",
@@ -38,6 +42,7 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
   // Existing, already-known custom fields (predefined earlier, by anyone)
   const [customFieldDefs, setCustomFieldDefs] = useState([]);
   const [customValues, setCustomValues] = useState({}); // { fieldId: value }
+  const [removedCustomFieldIds, setRemovedCustomFieldIds] = useState([]);
 
   // Brand-new fields the operator is typing right now: [{ id, name, value }]
   // These don't exist yet — they get created automatically on save.
@@ -83,6 +88,7 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
         existing[cv.field_id] = cv.value;
       });
       setCustomValues(existing);
+      setRemovedCustomFieldIds([]);
       setDynamicFields([]);
 
       // Reset any leftover local preview when switching students
@@ -92,6 +98,7 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
     } else {
       setForm(emptyForm);
       setCustomValues({});
+      setRemovedCustomFieldIds([]);
       setDynamicFields([]);
       setRemoveExistingPhoto(false);
     }
@@ -114,6 +121,17 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
 
   const handleCustomValueChange = (fieldId, value) => {
     setCustomValues((prev) => ({ ...prev, [fieldId]: value }));
+  };
+
+  const removeCustomField = async (field) => {
+    try {
+      await deactivateCustomField(field.id);
+      handleCustomValueChange(field.id, "");
+      setRemovedCustomFieldIds((prev) => [...prev, field.id]);
+    } catch (err) {
+      console.error("Failed to remove custom field:", err);
+      setError(`Failed to remove ${field.name}. Only an admin can remove fields.`);
+    }
   };
 
   const handlePhotoChange = (e) => {
@@ -257,6 +275,10 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
   const displayPhoto = removeExistingPhoto
     ? null
     : photoPreview || student?.photo || null;
+
+  const visibleCustomFieldDefs = customFieldDefs.filter(
+    (field) => !removedCustomFieldIds.includes(field.id)
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -496,13 +518,13 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
           </div>
 
           {/* Already-known custom fields (created earlier by anyone) */}
-          {customFieldDefs.length > 0 && (
+          {visibleCustomFieldDefs.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2 border-t pt-4">
                 Additional Information
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {customFieldDefs.map((field) => (
+                {visibleCustomFieldDefs.map((field) => (
                   <div key={field.id}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       {field.name}
@@ -524,9 +546,9 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
                       />
                       <button
                         type="button"
-                        onClick={() => handleCustomValueChange(field.id, "")}
+                        onClick={() => removeCustomField(field)}
                         className="text-red-500 text-sm px-2"
-                        title={`Remove ${field.name} for this student`}
+                        title={`Remove ${field.name} from student forms`}
                       >
                         ✕
                       </button>

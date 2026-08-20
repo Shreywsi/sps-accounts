@@ -20,8 +20,8 @@ class IsAdminOrCreateOnly(BasePermission):
     """
     Custom field definitions are shared: both roles need to read them,
     and operators need to create new ones on the fly while filling out
-    a student form. But only an ADMIN should be able to edit, deactivate,
-    or delete a definition that everyone else relies on.
+    a student form. Operators may also hide a field from forms, while only
+    an ADMIN should be able to edit, reactivate, or delete a definition.
     """
 
     def has_permission(self, request, view):
@@ -29,6 +29,13 @@ class IsAdminOrCreateOnly(BasePermission):
             return False
 
         if request.method in ("GET", "HEAD", "OPTIONS", "POST"):
+            return True
+
+        if (
+            request.method == "PATCH"
+            and request.data.get("is_active") is False
+            and set(request.data.keys()) == {"is_active"}
+        ):
             return True
 
         return request.user.role == "ADMIN"

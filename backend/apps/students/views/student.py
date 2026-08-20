@@ -1,5 +1,7 @@
 import json
+import logging
 
+import cloudinary.uploader
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -9,6 +11,9 @@ from rest_framework.permissions import IsAuthenticated
 from apps.students.models import Student
 from apps.students.permissions import IsAdminRole
 from apps.students.serializers import StudentSerializer
+
+
+logger = logging.getLogger(__name__)
 
 
 def _prepare_data(request):
@@ -65,10 +70,25 @@ class StudentViewSet(viewsets.ModelViewSet):
         student = self.get_object()
 
         data = _prepare_data(request)
+        remove_photo = str(data.pop("remove_photo", "")).lower() == "true"
+        old_photo = student.photo if remove_photo and "photo" not in data else None
+        if remove_photo and "photo" not in data:
+            data["photo"] = None
 
         serializer = self.get_serializer(student, data=data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+
+        if old_photo:
+            try:
+                cloudinary.uploader.destroy(
+                    old_photo.public_id,
+                    invalidate=True,
+                    resource_type=old_photo.resource_type,
+                    type=old_photo.type,
+                )
+            except Exception:
+                logger.exception("Failed to delete old student photo from Cloudinary")
 
         # Any edit (from PENDING, VERIFIED, or REJECTED) must go back
         # through admin review instead of being silently accepted or
