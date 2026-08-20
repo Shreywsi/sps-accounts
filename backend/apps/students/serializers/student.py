@@ -46,6 +46,13 @@ class StudentSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip()
 
+    def to_representation(self, instance):
+        # CloudinaryField doesn't serialize to a usable URL by default under
+        # fields = "__all__" — force it to output the real, absolute image URL.
+        data = super().to_representation(instance)
+        data["photo"] = instance.photo.url if instance.photo else None
+        return data
+
     def validate(self, data):
         school_class = data.get("school_class")
         academic_section = data.get("academic_section")

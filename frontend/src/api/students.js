@@ -2,7 +2,8 @@ import API from "./axios";
 
 export const getStudents = (params = {}) =>
   API.get("/students/", { params });
-
+export const getStudentById = (id) =>
+  API.get(`/students/${id}/`);
 export const verifyStudent = (id) => {
   return API.post(`/students/${id}/verify/`);
 };

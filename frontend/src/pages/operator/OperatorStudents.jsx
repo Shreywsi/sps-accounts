@@ -5,6 +5,7 @@ import EmptyState from "../../components/common/EmptyState";
 import Loader from "../../components/ui/Loader";
 import Modal from "../../components/ui/Modal";
 import StudentForm from "../../components/students/StudentForm";
+import { useNavigate } from "react-router-dom";
 import {
   getClasses,
   createClass,
@@ -14,6 +15,8 @@ import {
 import { getStudents } from "../../api/students";
 
 export default function OperatorStudents() {
+  const navigate = useNavigate();
+
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
@@ -138,8 +141,8 @@ export default function OperatorStudents() {
   };
 
   const openEditStudent = (student) => {
-    setEditingStudent(student);
-    setShowStudentForm(true);
+    // Navigate to a full page instead of opening a popup
+    navigate(`/operator/students/${student.id}`);
   };
 
   const handleStudentSaved = () => {

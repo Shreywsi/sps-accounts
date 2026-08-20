@@ -16,6 +16,7 @@ import OperatorLayout from "../layouts/OperatorLayout";
 import OperatorDashboard from "../pages/operator/OperatorDashboard";
 import OperatorStudents from "../pages/operator/OperatorStudents";
 
+import OperatorStudentDetail from "../pages/operator/OperatorStudentDetail";
 export default function AppRoutes() {
   return (
     <Routes>
@@ -98,7 +99,16 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
+      <Route
+        path="/operator/students/:studentId"
+        element={
+          <ProtectedRoute allowedRole="OPERATOR">
+            <OperatorLayout>
+              <OperatorStudentDetail />
+            </OperatorLayout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />

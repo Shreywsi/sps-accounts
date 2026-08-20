@@ -52,6 +52,9 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
         email: student.email || "",
         address: student.address || "",
       });
+      // Reset any leftover local preview when switching students
+      setPhotoFile(null);
+      setPhotoPreview(null);
     }
   }, [student]);
 
@@ -111,6 +114,9 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
     }
   };
 
+  // Priority: freshly picked file preview > existing saved photo URL > none
+  const displayPhoto = photoPreview || student?.photo || null;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
@@ -119,211 +125,225 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
         </div>
       )}
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Photo
-        </label>
-        <div className="flex items-center gap-4">
-          {(photoPreview || student?.photo) && (
-            <img
-              src={photoPreview || student.photo}
-              alt="Student"
-              className="w-16 h-16 rounded-md object-cover border"
+      {/* Photo panel on the right, fields on the left — like an admit card */}
+      <div className="flex flex-col-reverse lg:flex-row-reverse gap-6">
+        <div className="lg:w-52 shrink-0">
+          <div className="lg:sticky lg:top-4 flex flex-col items-center gap-3">
+            <div className="w-40 h-48 lg:w-48 lg:h-56 rounded-md border-2 border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center">
+              {displayPhoto ? (
+                <img
+                  src={displayPhoto}
+                  alt="Student"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-xs text-gray-400 px-2 text-center">
+                  No photo uploaded
+                </span>
+              )}
+            </div>
+
+            <label className="w-full">
+              <span className="block text-sm font-medium text-gray-700 mb-1 text-center">
+                Student Photo
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="text-xs w-full"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Admission No
+              </label>
+              <input
+                name="admission_no"
+                value={form.admission_no}
+                onChange={handleChange}
+                required
+                className="w-full border rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Roll Number
+              </label>
+              <input
+                name="roll_number"
+                type="number"
+                value={form.roll_number}
+                onChange={handleChange}
+                required
+                className="w-full border rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                First Name
+              </label>
+              <input
+                name="first_name"
+                value={form.first_name}
+                onChange={handleChange}
+                required
+                className="w-full border rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Last Name
+              </label>
+              <input
+                name="last_name"
+                value={form.last_name}
+                onChange={handleChange}
+                className="w-full border rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Age
+              </label>
+              <input
+                name="age"
+                type="number"
+                value={form.age}
+                onChange={handleChange}
+                className="w-full border rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Gender
+              </label>
+              <select
+                name="gender"
+                value={form.gender}
+                onChange={handleChange}
+                className="w-full border rounded-md px-3 py-2 text-sm"
+              >
+                <option value="">Select</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Class
+              </label>
+              <select
+                name="school_class"
+                value={form.school_class}
+                onChange={handleChange}
+                className="w-full border rounded-md px-3 py-2 text-sm"
+              >
+                <option value="">Select class</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Section
+              </label>
+              <select
+                name="academic_section"
+                value={form.academic_section}
+                onChange={handleChange}
+                disabled={!form.school_class}
+                className="w-full border rounded-md px-3 py-2 text-sm disabled:bg-gray-100"
+              >
+                <option value="">Select section</option>
+                {sections.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Father's Name
+              </label>
+              <input
+                name="father_name"
+                value={form.father_name}
+                onChange={handleChange}
+                required
+                className="w-full border rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Mother's Name
+              </label>
+              <input
+                name="mother_name"
+                value={form.mother_name}
+                onChange={handleChange}
+                className="w-full border rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Phone
+              </label>
+              <input
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                className="w-full border rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                className="w-full border rounded-md px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Address
+            </label>
+            <textarea
+              name="address"
+              value={form.address}
+              onChange={handleChange}
+              rows={2}
+              className="w-full border rounded-md px-3 py-2 text-sm"
             />
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handlePhotoChange}
-            className="text-sm"
-          />
+          </div>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Admission No
-          </label>
-          <input
-            name="admission_no"
-            value={form.admission_no}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Roll Number
-          </label>
-          <input
-            name="roll_number"
-            type="number"
-            value={form.roll_number}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            First Name
-          </label>
-          <input
-            name="first_name"
-            value={form.first_name}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Last Name
-          </label>
-          <input
-            name="last_name"
-            value={form.last_name}
-            onChange={handleChange}
-            className="w-full border rounded-md px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Age
-          </label>
-          <input
-            name="age"
-            type="number"
-            value={form.age}
-            onChange={handleChange}
-            className="w-full border rounded-md px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Gender
-          </label>
-          <select
-            name="gender"
-            value={form.gender}
-            onChange={handleChange}
-            className="w-full border rounded-md px-3 py-2 text-sm"
-          >
-            <option value="">Select</option>
-            <option value="MALE">Male</option>
-            <option value="FEMALE">Female</option>
-            <option value="OTHER">Other</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Class
-          </label>
-          <select
-            name="school_class"
-            value={form.school_class}
-            onChange={handleChange}
-            className="w-full border rounded-md px-3 py-2 text-sm"
-          >
-            <option value="">Select class</option>
-            {classes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Section
-          </label>
-          <select
-            name="academic_section"
-            value={form.academic_section}
-            onChange={handleChange}
-            disabled={!form.school_class}
-            className="w-full border rounded-md px-3 py-2 text-sm disabled:bg-gray-100"
-          >
-            <option value="">Select section</option>
-            {sections.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Father's Name
-          </label>
-          <input
-            name="father_name"
-            value={form.father_name}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Mother's Name
-          </label>
-          <input
-            name="mother_name"
-            value={form.mother_name}
-            onChange={handleChange}
-            className="w-full border rounded-md px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Phone
-          </label>
-          <input
-            name="phone"
-            value={form.phone}
-            onChange={handleChange}
-            className="w-full border rounded-md px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Email
-          </label>
-          <input
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            className="w-full border rounded-md px-3 py-2 text-sm"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Address
-        </label>
-        <textarea
-          name="address"
-          value={form.address}
-          onChange={handleChange}
-          rows={2}
-          className="w-full border rounded-md px-3 py-2 text-sm"
-        />
       </div>
 
       <div className="flex gap-3 pt-2">
