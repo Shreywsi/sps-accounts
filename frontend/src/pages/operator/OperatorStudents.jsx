@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Card from "../../components/common/Card";
 import Button from "../../components/common/Button";
 import EmptyState from "../../components/common/EmptyState";
 import Loader from "../../components/ui/Loader";
 import Modal from "../../components/ui/Modal";
 import StudentForm from "../../components/students/StudentForm";
-import { useNavigate } from "react-router-dom";
 import {
   getClasses,
   createClass,
@@ -16,7 +16,6 @@ import { getStudents } from "../../api/students";
 
 export default function OperatorStudents() {
   const navigate = useNavigate();
-
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
@@ -274,7 +273,20 @@ export default function OperatorStudents() {
                   <td className="px-4 py-3">{student.school_class_name || "-"}</td>
                   <td className="px-4 py-3">{student.section_name || "-"}</td>
                   <td className="px-4 py-3">{student.phone || "-"}</td>
-                  <td className="px-4 py-3">{student.verification_status}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={
+                        "px-2 py-1 rounded-full text-xs font-medium " +
+                        (student.verification_status === "VERIFIED"
+                          ? "bg-green-100 text-green-700"
+                          : student.verification_status === "REJECTED"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-yellow-100 text-yellow-700")
+                      }
+                    >
+                      {student.verification_status}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>

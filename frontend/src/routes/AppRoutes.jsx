@@ -17,6 +17,8 @@ import OperatorDashboard from "../pages/operator/OperatorDashboard";
 import OperatorStudents from "../pages/operator/OperatorStudents";
 
 import OperatorStudentDetail from "../pages/operator/OperatorStudentDetail";
+
+import AdminStudentDetail from "../pages/AdminStudentDetail";
 export default function AppRoutes() {
   return (
     <Routes>
@@ -50,7 +52,16 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
+      <Route
+        path="/students/:studentId"
+        element={
+          <ProtectedRoute allowedRole="ADMIN">
+            <AdminLayout>
+              <AdminStudentDetail />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/pending-users"

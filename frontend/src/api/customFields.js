@@ -14,5 +14,8 @@ export const updateCustomField = (id, data) =>
 export const deactivateCustomField = (id) =>
   API.patch(`/custom-fields/${id}/`, { is_active: false });
 
+export const activateCustomField = (id) =>
+  API.patch(`/custom-fields/${id}/`, { is_active: true });
+
 export const deleteCustomField = (id) =>
   API.delete(`/custom-fields/${id}/`);

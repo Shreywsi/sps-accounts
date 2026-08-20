@@ -84,8 +84,17 @@ class StudentSerializer(serializers.ModelSerializer):
 
     def _save_custom_values(self, student, custom_values_data):
         for item in custom_values_data:
-            StudentCustomFieldValue.objects.update_or_create(
-                student=student,
-                field=item["field"],
-                defaults={"value": item.get("value", "")},
-            )
+            value = item.get("value", "")
+            if value == "":
+                # An explicitly empty value means "remove this field for
+                # this student" (e.g. they cleared it or hit the clear
+                # button), not "save an empty string".
+                StudentCustomFieldValue.objects.filter(
+                    student=student, field=item["field"]
+                ).delete()
+            else:
+                StudentCustomFieldValue.objects.update_or_create(
+                    student=student,
+                    field=item["field"],
+                    defaults={"value": value},
+                )

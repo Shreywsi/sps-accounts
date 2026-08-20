@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getClasses, getSections } from "../../api/academics";
 import { createStudent, updateStudent } from "../../api/students";
+import { getCustomFields, createCustomField } from "../../api/customFields";
 
 const emptyForm = {
   admission_no: "",
@@ -18,21 +19,44 @@ const emptyForm = {
   address: "",
 };
 
+let dynamicRowCounter = 0;
+function nextDynamicRowId() {
+  dynamicRowCounter += 1;
+  return `new-${dynamicRowCounter}`;
+}
+
 export default function StudentForm({ student, onSuccess, onCancel }) {
   const [form, setForm] = useState(emptyForm);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [removeExistingPhoto, setRemoveExistingPhoto] = useState(false);
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // Existing, already-known custom fields (predefined earlier, by anyone)
+  const [customFieldDefs, setCustomFieldDefs] = useState([]);
+  const [customValues, setCustomValues] = useState({}); // { fieldId: value }
+
+  // Brand-new fields the operator is typing right now: [{ id, name, value }]
+  // These don't exist yet — they get created automatically on save.
+  const [dynamicFields, setDynamicFields] = useState([]);
+
   const isEditMode = Boolean(student);
+
+  const loadCustomFieldDefs = () => {
+    getCustomFields(true)
+      .then((res) => setCustomFieldDefs(res.data))
+      .catch((err) => console.error("Failed to load custom fields:", err));
+  };
 
   useEffect(() => {
     getClasses()
       .then((res) => setClasses(res.data))
       .catch((err) => console.error("Failed to load classes:", err));
+
+    loadCustomFieldDefs();
   }, []);
 
   useEffect(() => {
@@ -52,9 +76,24 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
         email: student.email || "",
         address: student.address || "",
       });
+
+      // Load existing custom field values keyed by field id
+      const existing = {};
+      (student.custom_values || []).forEach((cv) => {
+        existing[cv.field_id] = cv.value;
+      });
+      setCustomValues(existing);
+      setDynamicFields([]);
+
       // Reset any leftover local preview when switching students
       setPhotoFile(null);
       setPhotoPreview(null);
+      setRemoveExistingPhoto(false);
+    } else {
+      setForm(emptyForm);
+      setCustomValues({});
+      setDynamicFields([]);
+      setRemoveExistingPhoto(false);
     }
   }, [student]);
 
@@ -73,10 +112,86 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleCustomValueChange = (fieldId, value) => {
+    setCustomValues((prev) => ({ ...prev, [fieldId]: value }));
+  };
+
   const handlePhotoChange = (e) => {
     const file = e.target.files[0] || null;
     setPhotoFile(file);
     setPhotoPreview(file ? URL.createObjectURL(file) : null);
+    // Picking a new file always overrides any pending removal
+    if (file) setRemoveExistingPhoto(false);
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setRemoveExistingPhoto(true);
+  };
+
+  // --- Ad-hoc "add your own field" rows -----------------------------
+
+  const addDynamicFieldRow = () => {
+    setDynamicFields((prev) => [
+      ...prev,
+      { id: nextDynamicRowId(), name: "", value: "" },
+    ]);
+  };
+
+  const updateDynamicField = (id, key, val) => {
+    setDynamicFields((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [key]: val } : row))
+    );
+  };
+
+  const removeDynamicField = (id) => {
+    setDynamicFields((prev) => prev.filter((row) => row.id !== id));
+  };
+
+  // Turn the operator's typed-in name/value rows into real field_id/value
+  // pairs, creating a new CustomFieldDefinition on the fly for any name
+  // that doesn't already exist (matched case-insensitively).
+  const resolveDynamicFields = async () => {
+    const resolved = [];
+
+    for (const row of dynamicFields) {
+      const name = row.name.trim();
+      const value = row.value.trim();
+      if (!name || !value) continue;
+
+      const existing = customFieldDefs.find(
+        (f) => f.name.toLowerCase() === name.toLowerCase()
+      );
+
+      let fieldId = existing?.id;
+
+      if (!fieldId) {
+        try {
+          const created = await createCustomField({
+            name,
+            field_type: "text",
+          });
+          fieldId = created.data.id;
+        } catch (err) {
+          // Someone else may have just created a field with this exact
+          // name — re-check the list once before giving up.
+          const refreshed = await getCustomFields(true);
+          const match = refreshed.data.find(
+            (f) => f.name.toLowerCase() === name.toLowerCase()
+          );
+          if (match) {
+            fieldId = match.id;
+          } else {
+            throw err;
+          }
+        }
+      }
+
+      resolved.push({ field_id: fieldId, value });
+    }
+
+    return resolved;
   };
 
   const handleSubmit = async (e) => {
@@ -85,6 +200,8 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
     setSaving(true);
 
     try {
+      const dynamicResolved = await resolveDynamicFields();
+
       const payload = new FormData();
       Object.entries(form).forEach(([key, value]) => {
         if (value !== "" && value !== null) {
@@ -93,6 +210,28 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
       });
       if (photoFile) {
         payload.append("photo", photoFile);
+      }
+      if (removeExistingPhoto && !photoFile) {
+        payload.append("remove_photo", "true");
+      }
+
+      // Custom fields must travel as a JSON string inside the multipart
+      // body (the backend parses this key back into a list) since a photo
+      // upload forces the whole request into multipart/form-data.
+      //
+      // Every field the operator has touched is sent, including ones
+      // cleared back to "" — the backend treats an empty value as "delete
+      // this field for this student" rather than silently ignoring it.
+      const customValuesPayload = [
+        ...Object.entries(customValues).map(([fieldId, value]) => ({
+          field_id: fieldId,
+          value: (value ?? "").toString(),
+        })),
+        ...dynamicResolved,
+      ];
+
+      if (customValuesPayload.length > 0) {
+        payload.append("custom_values", JSON.stringify(customValuesPayload));
       }
 
       if (isEditMode) {
@@ -114,8 +253,10 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
     }
   };
 
-  // Priority: freshly picked file preview > existing saved photo URL > none
-  const displayPhoto = photoPreview || student?.photo || null;
+  // Priority: explicit removal > freshly picked file preview > existing saved photo URL > none
+  const displayPhoto = removeExistingPhoto
+    ? null
+    : photoPreview || student?.photo || null;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -154,6 +295,16 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
                 className="text-xs w-full"
               />
             </label>
+
+            {displayPhoto && (
+              <button
+                type="button"
+                onClick={handleRemovePhoto}
+                className="text-xs text-red-600 hover:underline"
+              >
+                Remove Photo
+              </button>
+            )}
           </div>
         </div>
 
@@ -342,6 +493,104 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
               rows={2}
               className="w-full border rounded-md px-3 py-2 text-sm"
             />
+          </div>
+
+          {/* Already-known custom fields (created earlier by anyone) */}
+          {customFieldDefs.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2 border-t pt-4">
+                Additional Information
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {customFieldDefs.map((field) => (
+                  <div key={field.id}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {field.name}
+                    </label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type={
+                          field.field_type === "number"
+                            ? "number"
+                            : field.field_type === "date"
+                            ? "date"
+                            : "text"
+                        }
+                        value={customValues[field.id] ?? ""}
+                        onChange={(e) =>
+                          handleCustomValueChange(field.id, e.target.value)
+                        }
+                        className="flex-1 border rounded-md px-3 py-2 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleCustomValueChange(field.id, "")}
+                        className="text-red-500 text-sm px-2"
+                        title={`Remove ${field.name} for this student`}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Add a brand-new field right here — no setup needed first */}
+          <div>
+            <div className="flex items-center justify-between border-t pt-4 mb-2">
+              <h3 className="text-sm font-semibold text-gray-700">
+                Add Another Field
+              </h3>
+              <button
+                type="button"
+                onClick={addDynamicFieldRow}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                + Add Field
+              </button>
+            </div>
+
+            {dynamicFields.length === 0 ? (
+              <p className="text-xs text-gray-400">
+                Need to record something not listed above, like Blood Group
+                or Bus Route? Click "+ Add Field" and type it in.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {dynamicFields.map((row) => (
+                  <div key={row.id} className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      placeholder="Field name (e.g. Blood Group)"
+                      value={row.name}
+                      onChange={(e) =>
+                        updateDynamicField(row.id, "name", e.target.value)
+                      }
+                      className="flex-1 border rounded-md px-3 py-2 text-sm"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Value (e.g. O+)"
+                      value={row.value}
+                      onChange={(e) =>
+                        updateDynamicField(row.id, "value", e.target.value)
+                      }
+                      className="flex-1 border rounded-md px-3 py-2 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeDynamicField(row.id)}
+                      className="text-red-500 text-sm px-2"
+                      title="Remove"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -105,7 +105,11 @@ class Student(models.Model):
         choices=STATUS_CHOICES,
         default="PENDING",
     )
-
+    rejection_reason = models.TextField(
+        blank=True,
+        default="",
+        help_text="Set by the admin when rejecting a student, shown to the operator.",
+    )   
     verified_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,

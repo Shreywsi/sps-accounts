@@ -1,64 +1,26 @@
 import { useEffect, useState } from "react";
-import { 
-  getStudents, 
-  verifyStudent, 
-  rejectStudent, 
-  reopenStudent 
-} from "../api/students";
+import { useNavigate } from "react-router-dom";
+import { getStudents } from "../api/students";
 
 export default function Students() {
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
-  const handleVerify = async (id) => {
-  try {
-    const res = await verifyStudent(id);
 
-    console.log(res.data);
-
-    // refresh students list
-    const updated = await getStudents();
-    setStudents(updated.data);
-
-  } catch (error) {
-    console.error("Verify error:", error);
-  }
-};
-const handleReject = async (id) => {
-  try {
-    const res = await rejectStudent(id);
-
-    console.log(res.data);
-
-    const updated = await getStudents();
-    setStudents(updated.data);
-
-  } catch (error) {
-    console.error("Reject error:", error);
-  }
-};
-const handleReopen = async (id) => {
-  try {
-    const res = await reopenStudent(id);
-
-    console.log(res.data);
-
-    const updated = await getStudents();
-    setStudents(updated.data);
-
-  } catch (error) {
-    console.error("Reopen error:", error);
-  }
-};
   useEffect(() => {
-  getStudents()
-    .then((res) => {
-      console.log("Students API:", res.data);
-      setStudents(res.data);
-    })
-    .catch((err) => {
-      console.log("Students Error:", err.response);
-      console.error(err);
-    });
-}, []);
+    getStudents()
+      .then((res) => {
+        console.log("Students API:", res.data);
+        setStudents(res.data);
+      })
+      .catch((err) => {
+        console.log("Students Error:", err.response);
+        console.error(err);
+      });
+  }, []);
+
+  const openStudent = (student) => {
+    navigate(`/students/${student.id}`);
+  };
 
   return (
     <div>
@@ -74,7 +36,6 @@ const handleReopen = async (id) => {
               <th className="px-4 py-3">Section</th>
               <th className="px-4 py-3">Phone</th>
               <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Action</th>
             </tr>
           </thead>
 
@@ -82,11 +43,12 @@ const handleReopen = async (id) => {
             {students.map((student) => (
               <tr
                 key={student.id}
-                className="border-b last:border-0 hover:bg-gray-50"
+                onClick={() => openStudent(student)}
+                className="border-b last:border-0 hover:bg-gray-50 cursor-pointer"
               >
                 <td className="px-4 py-3">{student.admission_no}</td>
 
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 text-blue-600">
                   {student.first_name} {student.last_name}
                 </td>
 
@@ -96,49 +58,25 @@ const handleReopen = async (id) => {
 
                 <td className="px-4 py-3">{student.phone}</td>
 
-                <td className="px-4 py-3">{student.verification_status}</td>
-
                 <td className="px-4 py-3">
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    {student.verification_status === "PENDING" && (
-                      <>
-                        <button
-                          onClick={() => handleVerify(student.id)}
-                          className="px-3 py-1 bg-green-600 text-white rounded-md text-sm"
-                        >
-                          Verify
-                        </button>
-
-                        <button
-                          onClick={() => handleReject(student.id)}
-                          className="px-3 py-1 bg-red-600 text-white rounded-md text-sm"
-                        >
-                          Reject
-                        </button>
-                      </>
+                  <span
+                    className={
+                      "px-2 py-1 rounded-full text-xs font-medium " +
+                      (student.verification_status === "VERIFIED"
+                        ? "bg-green-100 text-green-700"
+                        : student.verification_status === "REJECTED"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-yellow-100 text-yellow-700")
+                    }
+                  >
+                    {student.verification_status}
+                  </span>
+                  {student.verification_status === "REJECTED" &&
+                    student.rejection_reason && (
+                      <div className="text-xs text-gray-500 mt-1 max-w-xs">
+                        Reason: {student.rejection_reason}
+                      </div>
                     )}
-
-
-                    {student.verification_status === "VERIFIED" && (
-                      <button
-                        onClick={() => handleReopen(student.id)}
-                        className="px-3 py-1 bg-yellow-500 text-white rounded-md text-sm"
-                      >
-                        Reopen
-                      </button>
-                    )}
-
-
-                    {student.verification_status === "REJECTED" && (
-                      <button
-                        onClick={() => handleReopen(student.id)}
-                        className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm"
-                      >
-                        Review Again
-                      </button>
-                    )}
-
-                  </div>
                 </td>
               </tr>
             ))}
