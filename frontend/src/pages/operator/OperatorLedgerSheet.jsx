@@ -4,10 +4,11 @@ import {
   createTransaction,
   getTransactionCategories,
   createTransactionCategory,
-  deleteTransactionCategory,
+  deactivateTransactionCategory,
   getTransactionColumns,
   createTransactionColumn,
   deleteTransactionColumn,
+  getTransactions,
 } from "../../api/transactions";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -34,6 +35,7 @@ export default function OperatorLedgerSheet() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
+  const [history, setHistory] = useState([]);
 
   useEffect(() => {
     const load = async () => {
@@ -44,6 +46,8 @@ export default function OperatorLedgerSheet() {
         ]);
         setCategories(categoryResponse.results || categoryResponse);
         setColumns(columnResponse.results || columnResponse);
+        const transactionResponse = await getTransactions();
+        setHistory(transactionResponse.results || transactionResponse);
       } catch (error) {
         setMessage({ type: "error", text: "Failed to load categories or columns." });
       } finally {
@@ -57,6 +61,11 @@ export default function OperatorLedgerSheet() {
     setRows((current) => current.map((row) => (
       row.id === id ? { ...row, [field]: value } : row
     )));
+  };
+
+  const refreshHistory = async () => {
+    const transactionResponse = await getTransactions();
+    setHistory(transactionResponse.results || transactionResponse);
   };
 
   const saveAll = async () => {
@@ -80,6 +89,7 @@ export default function OperatorLedgerSheet() {
         });
       }
       setRows([newRow()]);
+      await refreshHistory();
       setMessage({ type: "success", text: "Changes saved and sent for admin verification." });
     } catch (error) {
       setMessage({ type: "error", text: error.response?.data?.detail || "Could not save changes." });
@@ -116,6 +126,15 @@ export default function OperatorLedgerSheet() {
       setColumns((current) => current.filter((column) => column.id !== id));
     } catch (error) {
       setMessage({ type: "error", text: "Only an admin can remove columns." });
+    }
+  };
+
+  const removeCategory = async (id) => {
+    try {
+      await deactivateTransactionCategory(id);
+      setCategories((current) => current.filter((category) => category.id !== id));
+    } catch (error) {
+      setMessage({ type: "error", text: "Category could not be removed." });
     }
   };
 
@@ -173,7 +192,34 @@ export default function OperatorLedgerSheet() {
         <button onClick={() => setRows((current) => [...current, newRow()])} className="m-2 flex items-center gap-1 text-sm text-blue-600"><Plus className="w-4 h-4" /> Add New Row</button>
       </div>
 
-      {showSettings && <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="bg-white rounded-lg p-6 w-full max-w-md space-y-4 shadow-xl"><h3 className="text-lg font-bold">Manage Categories and Columns</h3><div className="flex gap-2"><input value={newCatName} onChange={(event) => setNewCatName(event.target.value)} placeholder="New category name" className="flex-1 border rounded px-3 py-2" /><button onClick={addCategory} className="bg-blue-600 text-white px-3 rounded">Add</button></div><div className="flex gap-2"><input value={newColumnName} onChange={(event) => setNewColumnName(event.target.value)} placeholder="New column name" className="flex-1 border rounded px-3 py-2" /><button onClick={addColumn} className="bg-blue-600 text-white px-3 rounded">Add</button></div><div className="max-h-60 overflow-y-auto border rounded divide-y">{categories.map((category) => <div key={category.id} className="p-2">Category: {category.name}</div>)}{columns.map((column) => <div key={column.id} className="flex justify-between p-2">Column: {column.name}<button onClick={() => removeColumn(column.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></button></div>)}</div><button onClick={() => setShowSettings(false)} className="float-right px-4 py-2 bg-gray-200 rounded">Close</button></div></div>}
+      {showSettings && <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="bg-white rounded-lg p-6 w-full max-w-md space-y-4 shadow-xl"><h3 className="text-lg font-bold">Manage Categories and Columns</h3><div className="flex gap-2"><input value={newCatName} onChange={(event) => setNewCatName(event.target.value)} placeholder="New category name" className="flex-1 border rounded px-3 py-2" /><button onClick={addCategory} className="bg-blue-600 text-white px-3 rounded">Add</button></div><div className="flex gap-2"><input value={newColumnName} onChange={(event) => setNewColumnName(event.target.value)} placeholder="New column name" className="flex-1 border rounded px-3 py-2" /><button onClick={addColumn} className="bg-blue-600 text-white px-3 rounded">Add</button></div><div className="max-h-60 overflow-y-auto border rounded divide-y">{categories.map((category) => <div key={category.id} className="flex justify-between p-2">Category: {category.name}<button onClick={() => removeCategory(category.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></button></div>)}{columns.map((column) => <div key={column.id} className="flex justify-between p-2">Column: {column.name}<button onClick={() => removeColumn(column.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></button></div>)}</div><button onClick={() => setShowSettings(false)} className="float-right px-4 py-2 bg-gray-200 rounded">Close</button></div></div>}
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold text-gray-800">My Transaction History</h2>
+        {history.length === 0 ? (
+          <p className="p-6 bg-white border rounded text-sm text-gray-500">No submitted transactions yet.</p>
+        ) : (
+          <div className="border rounded bg-white overflow-x-auto">
+            <table className="min-w-[700px] w-full text-sm text-left">
+              <thead className="bg-gray-100 border-b text-gray-700">
+                <tr><th className="p-2">Date</th><th className="p-2">Type</th><th className="p-2">Title</th><th className="p-2">Amount</th><th className="p-2">Status</th><th className="p-2">Reviewed By</th></tr>
+              </thead>
+              <tbody className="divide-y">
+                {history.map((item) => (
+                  <tr key={item.id}>
+                    <td className="p-2">{item.transaction_date}</td>
+                    <td className="p-2">{item.transaction_type}</td>
+                    <td className="p-2">{item.items?.[0]?.title || "-"}</td>
+                    <td className="p-2">₹{item.total_amount}</td>
+                    <td className="p-2 font-medium">{item.status}</td>
+                    <td className="p-2">{item.approved_by_name || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
     </div>
   );
 }

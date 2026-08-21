@@ -61,6 +61,7 @@ class Transaction(models.Model):
 
     class TransactionType(models.TextChoices):
         FEE = "FEE", "Student Fee"
+        INCOME = "INCOME", "Income"
         EXPENSE = "EXPENSE", "Expense"
         SALARY = "SALARY", "Salary"
         LOAN = "LOAN", "Loan"

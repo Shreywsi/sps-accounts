@@ -4,6 +4,7 @@ import { getTransactions, approveTransaction, rejectTransaction } from '../api/t
 
 export default function AdminApprovals() {
   const [pending, setPending] = useState([]);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,6 +16,8 @@ export default function AdminApprovals() {
       setLoading(true);
       const res = await getTransactions({ status: 'SUBMITTED' });
       setPending(res.results || res);
+      const historyRes = await getTransactions();
+      setHistory(historyRes.results || historyRes);
     } catch (err) {
       alert('Error loading pending approvals.');
     } finally {
@@ -26,6 +29,7 @@ export default function AdminApprovals() {
     try {
       await approveTransaction(id);
       setPending(pending.filter((t) => t.id !== id));
+      fetchPending();
     } catch (err) {
       alert('Failed to approve transaction.');
     }
@@ -37,6 +41,7 @@ export default function AdminApprovals() {
     try {
       await rejectTransaction(id, reason);
       setPending(pending.filter((t) => t.id !== id));
+      fetchPending();
     } catch (err) {
       alert('Failed to reject transaction.');
     }
@@ -66,7 +71,7 @@ export default function AdminApprovals() {
           <table className="w-full text-sm text-left">
             <thead className="bg-gray-100 border-b text-gray-700">
               <tr>
-                <th className="p-3">Operator</th>
+                <th className="p-3">Created By</th>
                 <th className="p-3">Date</th>
                 <th className="p-3">Type</th>
                 <th className="p-3">Title</th>
@@ -120,6 +125,44 @@ export default function AdminApprovals() {
           </table>
         </div>
       )}
+
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold text-gray-800">Transaction History</h2>
+        {history.length === 0 ? (
+          <div className="p-8 text-center text-gray-500 bg-white rounded border">
+            No transaction history yet.
+          </div>
+        ) : (
+          <div className="bg-white border rounded shadow-sm overflow-x-auto">
+            <table className="min-w-[900px] w-full text-sm text-left">
+              <thead className="bg-gray-100 border-b text-gray-700">
+                <tr>
+                  <th className="p-3">Created By</th>
+                  <th className="p-3">Date</th>
+                  <th className="p-3">Type</th>
+                  <th className="p-3">Title</th>
+                  <th className="p-3">Amount</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Reviewed By</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {history.map((item) => (
+                  <tr key={item.id}>
+                    <td className="p-3">{item.created_by_name || 'Operator'}</td>
+                    <td className="p-3">{item.transaction_date}</td>
+                    <td className="p-3">{item.transaction_type}</td>
+                    <td className="p-3">{item.items?.[0]?.title || '-'}</td>
+                    <td className="p-3">₹{item.total_amount}</td>
+                    <td className="p-3 font-medium">{item.status}</td>
+                    <td className="p-3">{item.approved_by_name || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

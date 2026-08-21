@@ -5,7 +5,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.transactions.models import Transaction, TransactionCategory, TransactionColumn
-from apps.transactions.permissions import IsAdminOrCreateOnly, IsAdminRole
+from apps.transactions.permissions import (
+    IsAdminRole,
+    IsAuthenticatedColumnManager,
+)
 from apps.transactions.serializers.transaction import (
     TransactionCategorySerializer,
     TransactionColumnSerializer,
@@ -68,7 +71,7 @@ class TransactionCategoryViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = TransactionCategorySerializer
-    permission_classes = [IsAdminOrCreateOnly]
+    permission_classes = [IsAuthenticatedColumnManager]
 
     def get_queryset(self):
         qs = TransactionCategory.objects.all()
@@ -79,7 +82,7 @@ class TransactionCategoryViewSet(viewsets.ModelViewSet):
 
 class TransactionColumnViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionColumnSerializer
-    permission_classes = [IsAdminOrCreateOnly]
+    permission_classes = [IsAuthenticatedColumnManager]
 
     def get_queryset(self):
         qs = TransactionColumn.objects.all()

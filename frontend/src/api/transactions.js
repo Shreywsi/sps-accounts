@@ -16,12 +16,12 @@ export const updateTransaction = async (id, data) => {
 };
 
 export const approveTransaction = async (id) => {
-  const response = await api.post(`/transactions/${id}/approve/`);
+  const response = await api.patch(`/transactions/${id}/approve/`);
   return response.data;
 };
 
 export const rejectTransaction = async (id, reason = '') => {
-  const response = await api.post(`/transactions/${id}/reject/`, { reason });
+  const response = await api.patch(`/transactions/${id}/reject/`, { reason });
   return response.data;
 };
 
@@ -52,5 +52,10 @@ export const createTransactionCategory = async (data) => {
 
 export const deleteTransactionCategory = async (id) => {
   const response = await api.delete(`/transactions/categories/${id}/`);
+  return response.data;
+};
+
+export const deactivateTransactionCategory = async (id) => {
+  const response = await api.patch(`/transactions/categories/${id}/`, { is_active: false });
   return response.data;
 };

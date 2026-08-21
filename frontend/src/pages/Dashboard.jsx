@@ -57,6 +57,26 @@ export default function Dashboard() {
       value: `₹ ${data?.total_due ?? 0}`,
       icon: Clock,
     },
+    {
+      title: "Received This Week",
+      value: `₹ ${data?.week_received ?? 0}`,
+      icon: Wallet,
+    },
+    {
+      title: "Spent This Week",
+      value: `₹ ${data?.week_spent ?? 0}`,
+      icon: IndianRupee,
+    },
+    {
+      title: "Received This Month",
+      value: `₹ ${data?.month_received ?? 0}`,
+      icon: Wallet,
+    },
+    {
+      title: "Spent This Month",
+      value: `₹ ${data?.month_spent ?? 0}`,
+      icon: IndianRupee,
+    },
   ];
 
   return (

@@ -60,6 +60,11 @@ class TransactionSerializer(serializers.ModelSerializer):
         source="created_by.username",
         read_only=True,
     )
+    approved_by_name = serializers.CharField(
+        source="approved_by.username",
+        read_only=True,
+        allow_null=True,
+    )
 
     class Meta:
         model = Transaction
@@ -77,6 +82,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             "total_amount",
             "items",
             "created_by_name",
+            "approved_by_name",
             "approved_by",
             "approved_at",
             "created_at",
