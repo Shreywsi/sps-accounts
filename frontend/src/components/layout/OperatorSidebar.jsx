@@ -12,7 +12,7 @@ import { useAuth } from "../../context/AuthContext";
 const menu = [
   { name: "Dashboard", path: "/operator/dashboard", icon: LayoutDashboard },
   { name: "Students", path: "/operator/students", icon: Users },
-  { name: "Expenses", path: "/operator/expenses", icon: Receipt },
+  { name: "Expenses", path: "/operator/ledger", icon: Receipt }, // Updated path
   { name: "Messages", path: "/operator/messages", icon: MessageSquare },
 ];
 

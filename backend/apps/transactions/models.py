@@ -4,6 +4,59 @@ from django.conf import settings
 from django.db import models
 from apps.students.models import Student
 
+
+class TransactionCategory(models.Model):
+    """
+    Operator-managed category list (the 'add/remove like Excel columns'
+    piece). Any role can create one on the fly while entering a row;
+    only ADMIN can deactivate/delete — enforced in permissions.py, not
+    here, so the model stays a plain lookup table.
+    """
+
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_transaction_categories",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name_plural = "Transaction categories"
+
+    def __str__(self):
+        return self.name
+
+
+class TransactionColumn(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_transaction_columns",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Transaction(models.Model):
 
     class TransactionType(models.TextChoices):
@@ -35,6 +88,13 @@ class Transaction(models.Model):
         max_length=20,
         choices=TransactionType.choices,
     )
+    category = models.ForeignKey(
+        TransactionCategory,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="transactions",
+    )
     student = models.ForeignKey(
         Student,
         on_delete=models.PROTECT,
@@ -51,6 +111,11 @@ class Transaction(models.Model):
     )
 
     narration = models.TextField(
+        blank=True,
+    )
+
+    custom_data = models.JSONField(
+        default=dict,
         blank=True,
     )
 

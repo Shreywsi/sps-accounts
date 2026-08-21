@@ -1,14 +1,12 @@
 import {
   LayoutDashboard,
   Users,
-  GraduationCap,
-  FileText,
-  Settings,
   UserCheck,
   LogOut,
   X,
   Receipt,
   MessageSquare,
+  ClipboardCheck,
 } from "lucide-react";
 
 import { NavLink, useNavigate } from "react-router-dom";
@@ -17,12 +15,10 @@ import { useAuth } from "../../context/AuthContext";
 const menu = [
   { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { name: "Students", path: "/students", icon: Users },
-  { name: "Academics", path: "/academics", icon: GraduationCap },
   { name: "Expense Reports", path: "/expenses/reports", icon: Receipt },
-  { name: "Reports", path: "/reports", icon: FileText },
   { name: "Messages", path: "/messages", icon: MessageSquare },
-  { name: "Settings", path: "/settings", icon: Settings },
   { name: "Pending Operators", path: "/pending-users", icon: UserCheck },
+  { name: "Transaction Approvals", path: "/admin/approvals", icon: ClipboardCheck },
 ];
 
 

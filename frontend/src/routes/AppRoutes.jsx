@@ -17,11 +17,11 @@ import OperatorLayout from "../layouts/OperatorLayout";
 
 import OperatorDashboard from "../pages/operator/OperatorDashboard";
 import OperatorStudents from "../pages/operator/OperatorStudents";
-import OperatorExpenseSheet from "../pages/operator/OperatorExpenseSheet";
-
 import OperatorStudentDetail from "../pages/operator/OperatorStudentDetail";
 
 import AdminStudentDetail from "../pages/AdminStudentDetail";
+import OperatorLedgerSheet from '../pages/operator/OperatorLedgerSheet';
+import AdminApprovals from '../pages/AdminApprovals';
 
 export default function AppRoutes() {
   return (
@@ -150,7 +150,7 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRole="OPERATOR">
             <OperatorLayout>
-              <OperatorExpenseSheet />
+              <OperatorLedgerSheet />
             </OperatorLayout>
           </ProtectedRoute>
         }
@@ -166,9 +166,29 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
+      <Route
+        path="/admin/approvals"
+        element={
+          <ProtectedRoute allowedRole="ADMIN">
+            <AdminLayout>
+              <AdminApprovals />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/operator/ledger"
+        element={
+          <ProtectedRoute allowedRole="OPERATOR">
+            <OperatorLayout>
+              <OperatorLedgerSheet />
+            </OperatorLayout>
+          </ProtectedRoute>
+        }
+      />
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
+
 
     </Routes>
   );

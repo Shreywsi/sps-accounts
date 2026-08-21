@@ -1,12 +1,14 @@
-from django.urls import path
+from rest_framework.routers import DefaultRouter
 
 from apps.transactions.views.transaction import (
-    TransactionCreateView,
+    TransactionCategoryViewSet,
+    TransactionColumnViewSet,
+    TransactionViewSet,
 )
 
-urlpatterns = [
-    path(
-        "",
-        TransactionCreateView.as_view(),
-    ),
-]
+router = DefaultRouter()
+router.register("categories", TransactionCategoryViewSet, basename="transaction-categories")
+router.register("columns", TransactionColumnViewSet, basename="transaction-columns")
+router.register("", TransactionViewSet, basename="transactions")
+
+urlpatterns = router.urls
