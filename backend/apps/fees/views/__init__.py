@@ -7,5 +7,6 @@ from .student_fee import StudentFeeViewSet
 from .dashboard import DashboardAPIView
 from .reports import (
     CollectionReportAPIView,
+    DueFeesReportAPIView,
     OutstandingReportAPIView,
 )

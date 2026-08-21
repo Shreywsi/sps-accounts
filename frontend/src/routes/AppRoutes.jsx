@@ -7,6 +7,8 @@ import Students from "../pages/Students";
 import PendingUsers from "../pages/PendingUsers";
 import NotFound from "../pages/NotFound";
 import FeeCollection from "../pages/FeeCollection";
+import ExpenseReports from "../pages/ExpenseReports";
+import Messages from "../pages/Messages";
 
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -15,10 +17,12 @@ import OperatorLayout from "../layouts/OperatorLayout";
 
 import OperatorDashboard from "../pages/operator/OperatorDashboard";
 import OperatorStudents from "../pages/operator/OperatorStudents";
+import OperatorExpenseSheet from "../pages/operator/OperatorExpenseSheet";
 
 import OperatorStudentDetail from "../pages/operator/OperatorStudentDetail";
 
 import AdminStudentDetail from "../pages/AdminStudentDetail";
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -40,7 +44,6 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
 
       <Route
         path="/students"
@@ -74,13 +77,34 @@ export default function AppRoutes() {
         }
       />
 
-
       <Route
         path="/fees/collect"
         element={
           <ProtectedRoute allowedRole="ADMIN">
             <AdminLayout>
               <FeeCollection />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/expenses/reports"
+        element={
+          <ProtectedRoute allowedRole="ADMIN">
+            <AdminLayout>
+              <ExpenseReports />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/messages"
+        element={
+          <ProtectedRoute allowedRole="ADMIN">
+            <AdminLayout>
+              <Messages />
             </AdminLayout>
           </ProtectedRoute>
         }
@@ -116,6 +140,28 @@ export default function AppRoutes() {
           <ProtectedRoute allowedRole="OPERATOR">
             <OperatorLayout>
               <OperatorStudentDetail />
+            </OperatorLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/operator/expenses"
+        element={
+          <ProtectedRoute allowedRole="OPERATOR">
+            <OperatorLayout>
+              <OperatorExpenseSheet />
+            </OperatorLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/operator/messages"
+        element={
+          <ProtectedRoute allowedRole="OPERATOR">
+            <OperatorLayout>
+              <Messages />
             </OperatorLayout>
           </ProtectedRoute>
         }

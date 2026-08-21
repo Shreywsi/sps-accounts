@@ -1,6 +1,8 @@
 import {
   LayoutDashboard,
   Users,
+  Receipt,
+  MessageSquare,
   LogOut,
 } from "lucide-react";
 
@@ -8,16 +10,10 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 const menu = [
-  {
-    name: "Dashboard",
-    path: "/operator/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Students",
-    path: "/operator/students",
-    icon: Users,
-  },
+  { name: "Dashboard", path: "/operator/dashboard", icon: LayoutDashboard },
+  { name: "Students", path: "/operator/students", icon: Users },
+  { name: "Expenses", path: "/operator/expenses", icon: Receipt },
+  { name: "Messages", path: "/operator/messages", icon: MessageSquare },
 ];
 
 export default function OperatorSidebar() {

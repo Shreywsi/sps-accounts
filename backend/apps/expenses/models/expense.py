@@ -19,14 +19,9 @@ class Expense(models.Model):
         related_name="expenses",
     )
 
-    title = models.CharField(
-        max_length=200,
-    )
+    title = models.CharField(max_length=200)
 
-    amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-    )
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
 
     payment_method = models.CharField(
         max_length=20,
@@ -36,7 +31,11 @@ class Expense(models.Model):
 
     expense_date = models.DateField()
 
-    remarks = models.TextField(
+    remarks = models.TextField(blank=True)
+
+    receipt = models.FileField(
+        upload_to="expense_receipts/",
+        null=True,
         blank=True,
     )
 
@@ -45,9 +44,8 @@ class Expense(models.Model):
         on_delete=models.PROTECT,
     )
 
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-expense_date", "-created_at"]

@@ -6,7 +6,9 @@ from apps.accounts.views.auth import (
 )
 from apps.accounts.views.users import (
     PendingUsersView,
+    ApprovedUsersView,
     ApproveUserView,
+    RevokeUserView,
 )
 urlpatterns = [
     path("login/", LoginView.as_view()),
@@ -15,10 +17,18 @@ urlpatterns = [
         "users/pending/",
         PendingUsersView.as_view()
     ),
+    path(
+        "users/approved/",
+        ApprovedUsersView.as_view()
+    ),
 
     path(
         "users/<uuid:user_id>/approve/",
         ApproveUserView.as_view()
+    ),
+    path(
+        "users/<uuid:user_id>/revoke/",
+        RevokeUserView.as_view()
     ),
     path("login/", LoginView.as_view()),
     path("signup/", SignupView.as_view()),

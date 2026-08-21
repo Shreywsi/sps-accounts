@@ -4,14 +4,18 @@ import API from "../api/axios";
 export default function PendingUsers() {
 
   const [users, setUsers] = useState([]);
+  const [approvedUsers, setApprovedUsers] = useState([]);
 
-  const fetchPendingUsers = async () => {
+  const fetchUsers = async () => {
     try {
-      const res = await API.get("/auth/users/pending/");
-      console.log(res.data);
-      setUsers(res.data);
+      const [pendingRes, approvedRes] = await Promise.all([
+        API.get("/auth/users/pending/"),
+        API.get("/auth/users/approved/"),
+      ]);
+      setUsers(pendingRes.data);
+      setApprovedUsers(approvedRes.data);
     } catch (error) {
-      console.log("Pending users error:", error.response);
+      console.log("User management error:", error.response);
     }
   };
 
@@ -21,10 +25,16 @@ export default function PendingUsers() {
 
     (async () => {
       try {
-        const res = await API.get("/auth/users/pending/");
-        if (mounted) setUsers(res.data);
+        const [pendingRes, approvedRes] = await Promise.all([
+          API.get("/auth/users/pending/"),
+          API.get("/auth/users/approved/"),
+        ]);
+        if (mounted) {
+          setUsers(pendingRes.data);
+          setApprovedUsers(approvedRes.data);
+        }
       } catch (error) {
-        console.log("Pending users error:", error.response);
+        console.log("User management error:", error.response);
       }
     })();
 
@@ -45,7 +55,7 @@ export default function PendingUsers() {
       console.log(res.data);
 
       // refresh list
-      fetchPendingUsers();
+      fetchUsers();
 
     } catch(error) {
       console.log(
@@ -54,6 +64,17 @@ export default function PendingUsers() {
       );
     }
 
+  };
+
+  const revokeUser = async (user) => {
+    if (!window.confirm(`Revoke access for ${user.username}?`)) return;
+
+    try {
+      await API.post(`/auth/users/${user.id}/revoke/`);
+      fetchUsers();
+    } catch (error) {
+      console.log("Revoke error:", error.response);
+    }
   };
 
 
@@ -103,6 +124,47 @@ export default function PendingUsers() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <h2 className="text-xl font-semibold mt-10 mb-4">
+        Approved Operators
+      </h2>
+
+      <div className="overflow-x-auto bg-white border rounded-md">
+        <table className="min-w-[720px] w-full divide-y">
+          <thead className="bg-gray-50">
+            <tr className="text-left text-sm text-gray-600">
+              <th className="px-4 py-3">Username</th>
+              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Email</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {approvedUsers.map((user) => (
+              <tr key={user.id} className="border-b last:border-0 hover:bg-gray-50">
+                <td className="px-4 py-3">{user.username}</td>
+                <td className="px-4 py-3">{user.first_name} {user.last_name}</td>
+                <td className="px-4 py-3">{user.email}</td>
+                <td className="px-4 py-3 text-green-700">Approved</td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => revokeUser(user)}
+                    className="px-3 py-1 bg-red-600 text-white rounded-md text-sm"
+                  >
+                    Revoke Access
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {approvedUsers.length === 0 && (
+          <p className="px-4 py-4 text-sm text-gray-500">
+            No approved operators.
+          </p>
+        )}
       </div>
 
     </div>
