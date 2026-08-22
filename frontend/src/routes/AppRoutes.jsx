@@ -31,6 +31,10 @@ import AdminRequests from '../pages/AdminRequests';
 
 import Fees from "../pages/Fees";
 import OperatorFeeCollection from "../pages/operator/OperatorFeeCollection";
+
+import ActivityDashboard from "../features/dashboard/ActivityDashboard";
+import FinancialDashboard from "../features/dashboard/FinancialDashboard";
+import StudentDetailWithFees from "../features/students/StudentDetailWithFees";
 export default function AppRoutes() {
   return (
     <Routes>
@@ -47,7 +51,18 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRole="ADMIN">
             <AdminLayout>
-              <Dashboard />
+              <ActivityDashboard />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/financial-dashboard"
+        element={
+          <ProtectedRoute allowedRole="ADMIN">
+            <AdminLayout>
+              <FinancialDashboard />
             </AdminLayout>
           </ProtectedRoute>
         }
@@ -66,9 +81,9 @@ export default function AppRoutes() {
       <Route
         path="/students/:studentId"
         element={
-          <ProtectedRoute allowedRole="ADMIN">
+          <ProtectedRoute allowedRole={["ADMIN", "OPERATOR"]}>
             <AdminLayout>
-              <AdminStudentDetail />
+              <StudentDetailWithFees />
             </AdminLayout>
           </ProtectedRoute>
         }
@@ -180,7 +195,7 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRole="OPERATOR">
             <OperatorLayout>
-              <OperatorStudentDetail />
+              <StudentDetailWithFees />
             </OperatorLayout>
           </ProtectedRoute>
         }

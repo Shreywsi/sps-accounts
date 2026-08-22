@@ -12,12 +12,22 @@ export default function OperatorEvents() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const load = async () => {
+    setError("");
     try {
       const res = await getEvents();
       setEvents(res.data.results || res.data);
+    } catch (err) {
+      setError(
+        err?.response
+          ? `Couldn't load events (${err.response.status}). ${
+              err.response.data?.detail || ""
+            }`
+          : "Couldn't reach the server — check your connection and try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -64,6 +74,16 @@ export default function OperatorEvents() {
 
       {loading ? (
         <p className="text-sm text-gray-400">Loading…</p>
+      ) : error ? (
+        <div className="bg-rose-50 border border-rose-200 rounded-lg p-6 text-center text-rose-600 text-sm">
+          {error}
+          <button
+            onClick={load}
+            className="block mx-auto mt-3 px-3 py-1.5 text-xs rounded-md border border-rose-300 hover:bg-rose-100"
+          >
+            Retry
+          </button>
+        </div>
       ) : events.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-lg p-10 text-center text-slate-400">
           No events yet. Create your first one to get started.

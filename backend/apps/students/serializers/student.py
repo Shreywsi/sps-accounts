@@ -34,6 +34,9 @@ class StudentSerializer(serializers.ModelSerializer):
         required=False,
     )
 
+    total_monthly_fee = serializers.DecimalField(read_only=True, max_digits=10, decimal_places=2)
+    total_annual_fee = serializers.DecimalField(read_only=True, max_digits=10, decimal_places=2)
+
     class Meta:
         model = Student
         fields = "__all__"
@@ -41,6 +44,8 @@ class StudentSerializer(serializers.ModelSerializer):
             "full_name",
             "school_class_name",
             "section_name",
+            "total_monthly_fee",
+            "total_annual_fee",
         ]
 
     def get_full_name(self, obj):

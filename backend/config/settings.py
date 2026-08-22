@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "corsheaders",
 
     "rest_framework",
+    "django_filters",
 
     "rest_framework_simplejwt",
 
@@ -60,6 +61,7 @@ INSTALLED_APPS = [
     "apps.transactions",
     "apps.notifications",
     "apps.events",
+    "apps.activity",
     
 ]
 

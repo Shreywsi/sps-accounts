@@ -12,6 +12,7 @@ from apps.fees.views import (
     FeeStructureViewSet,
     PaymentViewSet,
 )
+from apps.fees.views.simple_payment import SimplePaymentViewSet
 
 router = DefaultRouter()
 
@@ -20,6 +21,7 @@ router.register("structures", FeeStructureViewSet)
 router.register("structure-items", FeeStructureItemViewSet)
 router.register("student-fees", FeeAssignmentViewSet)
 router.register("payments", PaymentViewSet)
+router.register("simple-payments", SimplePaymentViewSet, basename="simple-payments")
 
 urlpatterns = [
     path("dashboard/", DashboardAPIView.as_view(), name="fees-dashboard"),

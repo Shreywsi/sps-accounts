@@ -13,6 +13,8 @@ class StudentAdmin(admin.ModelAdmin):
         "academic_section",
         "roll_number",
         "phone",
+        "total_monthly_fee",
+        "total_annual_fee",
         "is_active",
     )
 

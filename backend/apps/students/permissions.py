@@ -16,6 +16,27 @@ class IsAdminRole(BasePermission):
         )
 
 
+class IsAdminOrOperator(BasePermission):
+    """
+    Allow access to both admin and operator roles for common operations
+    """
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.role in ["ADMIN", "OPERATOR"]
+        )
+
+    def has_object_permission(self, request, view, obj):
+        # Allow both admin and operator to perform any action on student objects
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.role in ["ADMIN", "OPERATOR"]
+        )
+
+
 class IsAdminOrCreateOnly(BasePermission):
     """
     Custom field definitions are shared: both roles need to read them,

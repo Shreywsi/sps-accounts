@@ -9,8 +9,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from apps.students.models import Student
-from apps.students.permissions import IsAdminRole
+from apps.students.permissions import IsAdminRole, IsAdminOrOperator
 from apps.students.serializers import StudentSerializer
+from apps.activity.services import log_activity
 
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,7 @@ def _prepare_data(request):
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrOperator]
 
     filterset_fields = [
         "school_class",
@@ -58,6 +59,19 @@ class StudentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
+        
+        # Log the creation activity
+        student = serializer.instance
+        log_activity(
+            actor=request.user,
+            action_type="CREATE_STUDENT",
+            description=f"Created student: {student.admission_no} - {student.first_name} {student.last_name}",
+            target_model="Student",
+            target_id=student.id,
+            target_description=str(student),
+            request=request,
+        )
+        
         headers = self.get_success_headers(serializer.data)
         return Response(
             serializer.data,
@@ -102,17 +116,45 @@ class StudentViewSet(viewsets.ModelViewSet):
         student.rejection_reason = ""
         student.save()
 
+        # Log the update activity
+        log_activity(
+            actor=request.user,
+            action_type="UPDATE_STUDENT",
+            description=f"Updated student: {student.admission_no} - {student.first_name} {student.last_name}",
+            target_model="Student",
+            target_id=student.id,
+            target_description=str(student),
+            request=request,
+        )
+
         serializer = self.get_serializer(student)
         return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
         student = self.get_object()
 
-        if student.verification_status == "VERIFIED":
-            return Response(
-                {"detail": "Verified students cannot be deleted."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # Log the deletion activity
+        log_activity(
+            actor=request.user,
+            action_type="DELETE_STUDENT",
+            description=f"Deleted student: {student.admission_no} - {student.first_name} {student.last_name}",
+            target_model="Student",
+            target_id=student.id,
+            target_description=str(student),
+            request=request,
+        )
+
+        # Delete student photo from Cloudinary if exists
+        if student.photo:
+            try:
+                cloudinary.uploader.destroy(
+                    student.photo.public_id,
+                    invalidate=True,
+                    resource_type=student.photo.resource_type,
+                    type=student.photo.type,
+                )
+            except Exception:
+                logger.exception("Failed to delete student photo from Cloudinary")
 
         return super().destroy(request, *args, **kwargs)
 
@@ -129,6 +171,17 @@ class StudentViewSet(viewsets.ModelViewSet):
         student.verified_at = timezone.now()
         student.rejection_reason = ""
         student.save()
+
+        # Log the verification activity
+        log_activity(
+            actor=request.user,
+            action_type="VERIFY_STUDENT",
+            description=f"Verified student: {student.admission_no} - {student.first_name} {student.last_name}",
+            target_model="Student",
+            target_id=student.id,
+            target_description=str(student),
+            request=request,
+        )
 
         return Response(
             {"message": "Student verified successfully."},
@@ -151,6 +204,18 @@ class StudentViewSet(viewsets.ModelViewSet):
         student.rejection_reason = reason
         student.save()
 
+        # Log the rejection activity
+        log_activity(
+            actor=request.user,
+            action_type="REJECT_STUDENT",
+            description=f"Rejected student: {student.admission_no} - {student.first_name} {student.last_name}. Reason: {reason}",
+            target_model="Student",
+            target_id=student.id,
+            target_description=str(student),
+            metadata={"rejection_reason": reason},
+            request=request,
+        )
+
         return Response(
             {"message": "Student rejected successfully."},
             status=status.HTTP_200_OK,
@@ -169,6 +234,17 @@ class StudentViewSet(viewsets.ModelViewSet):
         student.verified_at = None
         student.rejection_reason = ""
         student.save()
+
+        # Log the reopen activity
+        log_activity(
+            actor=request.user,
+            action_type="REOPEN_STUDENT",
+            description=f"Reopened student: {student.admission_no} - {student.first_name} {student.last_name}",
+            target_model="Student",
+            target_id=student.id,
+            target_description=str(student),
+            request=request,
+        )
 
         return Response(
             {"message": "Student moved back to pending."},

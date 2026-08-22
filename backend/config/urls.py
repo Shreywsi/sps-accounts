@@ -22,9 +22,13 @@ urlpatterns = [
         include("apps.academics.urls"),
     ),
 
+    # path(
+    #     "api/v1/fees/",
+    #     include("apps.fees.urls"),
+    # ),
     path(
         "api/v1/fees/",
-        include("apps.fees.urls"),
+        include("apps.fees.simple_urls"),
     ),
     path(
         "api/v1/expenses/",
@@ -41,5 +45,9 @@ urlpatterns = [
     path(
         "api/v1/events/",
         include("apps.events.urls"),
+    ),
+    path(
+        "api/v1/",
+        include("apps.activity.urls"),
     ),
 ]

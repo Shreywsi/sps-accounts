@@ -16,9 +16,8 @@ import {
 
 const menu = [
   { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+  { name: "Financial", path: "/financial-dashboard", icon: Wallet },
   { name: "Students", path: "/students", icon: Users },
-  { name: "Fee Structure", path: "/fees/structure", icon: Wallet },
-  { name: "Fee Collection", path: "/fees/collect", icon: Receipt },
   { name: "Expense Reports", path: "/expenses/reports", icon: Receipt },
   { name: "Events", path: "/admin/events", icon: FolderKanban },
   { name: "Requests", path: "/admin/requests", icon: FileEdit },
