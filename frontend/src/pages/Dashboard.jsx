@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Users,
   IndianRupee,
   Wallet,
   Clock,
+  FileEdit,
+  ArrowRight,
+  Clock3,
 } from "lucide-react";
 
 import { getDashboardData } from "../api/fees";
+import { getEventEditRequests } from "../api/events";
 
 import StatCard from "../components/dashboard/StatCard";
 import RecentPayments from "../components/dashboard/RecentPayments";
@@ -14,6 +19,8 @@ import RecentPayments from "../components/dashboard/RecentPayments";
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(true);
 
   useEffect(() => {
     getDashboardData()
@@ -26,6 +33,25 @@ export default function Dashboard() {
       .finally(() => {
         setLoading(false);
       });
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+    getEventEditRequests({ status: "PENDING" })
+      .then((res) => {
+        if (ignore) return;
+        setPendingRequests(res.data.results || res.data);
+        setRequestsLoading(false);
+      })
+      .catch((err) => {
+        if (!ignore) {
+          console.error(err);
+          setRequestsLoading(false);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   if (loading) {
@@ -108,6 +134,50 @@ export default function Dashboard() {
             icon={card.icon}
           />
         ))}
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-lg p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+            <FileEdit size={15} /> Operator requests
+          </h2>
+          <Link
+            to="/admin/requests"
+            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+          >
+            View all <ArrowRight size={12} />
+          </Link>
+        </div>
+
+        {requestsLoading ? (
+          <p className="text-sm text-slate-400 py-4">Loading…</p>
+        ) : pendingRequests.length === 0 ? (
+          <p className="text-sm text-slate-400 py-6 text-center">
+            No pending requests from operators right now.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {pendingRequests.slice(0, 5).map((r) => (
+              <Link
+                key={r.id}
+                to="/admin/requests"
+                className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-md px-3 py-2 hover:bg-amber-100/60"
+              >
+                <Clock3 size={13} className="text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-slate-700">
+                  <span className="font-medium">{r.requested_by_name}</span> wants to
+                  edit <span className="font-medium">{r.event_name}</span>
+                  <span className="text-slate-400"> — {r.reason}</span>
+                </p>
+              </Link>
+            ))}
+            {pendingRequests.length > 5 && (
+              <p className="text-xs text-slate-400 pt-1">
+                +{pendingRequests.length - 5} more pending
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <RecentPayments

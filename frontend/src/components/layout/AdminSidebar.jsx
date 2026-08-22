@@ -1,3 +1,5 @@
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import {
   LayoutDashboard,
   Users,
@@ -9,6 +11,7 @@ import {
   ClipboardCheck,
   FolderKanban,
   Wallet,
+  FileEdit,
 } from "lucide-react";
 
 const menu = [
@@ -18,6 +21,7 @@ const menu = [
   { name: "Fee Collection", path: "/fees/collect", icon: Receipt },
   { name: "Expense Reports", path: "/expenses/reports", icon: Receipt },
   { name: "Events", path: "/admin/events", icon: FolderKanban },
+  { name: "Requests", path: "/admin/requests", icon: FileEdit },
   { name: "Messages", path: "/messages", icon: MessageSquare },
   { name: "Pending Operators", path: "/pending-users", icon: UserCheck },
   { name: "Transaction Approvals", path: "/admin/approvals", icon: ClipboardCheck },

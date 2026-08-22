@@ -27,6 +27,7 @@ import OperatorEvents from '../pages/operator/OperatorEvents';
 import OperatorEventDetail from '../pages/operator/OperatorEventDetail';
 import AdminEvents from '../pages/AdminEvents';
 import AdminEventReview from '../pages/AdminEventReview';
+import AdminRequests from '../pages/AdminRequests';
 
 import Fees from "../pages/Fees";
 import OperatorFeeCollection from "../pages/operator/OperatorFeeCollection";
@@ -134,6 +135,17 @@ export default function AppRoutes() {
           <ProtectedRoute allowedRole="ADMIN">
             <AdminLayout>
               <AdminEventReview />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/requests"
+        element={
+          <ProtectedRoute allowedRole="ADMIN">
+            <AdminLayout>
+              <AdminRequests />
             </AdminLayout>
           </ProtectedRoute>
         }

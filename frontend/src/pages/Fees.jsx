@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import Card from "../components/common/Card";
 import Loader from "../components/ui/Loader";
 import Modal from "../components/ui/Modal";
-import { getClasses, getSessions, createClass } from "../api/academics";
+import {
+  getClasses,
+  getSessions,
+  createClass,
+  deleteClass,
+} from "../api/academics";
 import {
   getFeeCategories,
   createFeeCategory,
@@ -25,6 +31,7 @@ export default function Fees() {
   const [newCategoryName, setNewCategoryName] = useState("");
 
   const [showAddClass, setShowAddClass] = useState(false);
+  const [showClassDropdown, setShowClassDropdown] = useState(false);
   const [newClassName, setNewClassName] = useState("");
   const [savingClass, setSavingClass] = useState(false);
 
@@ -98,6 +105,37 @@ export default function Fees() {
       );
     } finally {
       setSavingClass(false);
+    }
+  };
+
+  const handleDeleteClass = async (classId) => {
+    const selectedClass = classes.find(
+      (schoolClass) => String(schoolClass.id) === String(classId)
+    );
+    if (!selectedClass) {
+      alert("Select a class to remove first.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Remove ${selectedClass.name}? Related sections and fee structures may also be removed.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteClass(selectedClass.id);
+      setForm((previous) => ({
+        ...previous,
+        class_from: "",
+        class_to: "",
+      }));
+      setShowClassDropdown(false);
+      loadAll();
+    } catch (err) {
+      alert(
+        err.response?.data?.detail ||
+          "This class cannot be removed because it is being used by existing records."
+      );
     }
   };
 
@@ -276,26 +314,52 @@ export default function Fees() {
             <div>
               <label className="text-sm text-gray-600 flex items-center justify-between">
                 From Class
+                <span className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddClass(true)}
+                    className="text-blue-600 text-xs"
+                  >
+                    + Add Class
+                  </button>
+                </span>
+              </label>
+              <div className="relative mt-1">
                 <button
                   type="button"
-                  onClick={() => setShowAddClass(true)}
-                  className="text-blue-600 text-xs"
+                  onClick={() => setShowClassDropdown((open) => !open)}
+                  className="w-full border rounded-md px-3 py-2 text-sm text-left bg-white"
                 >
-                  + Add Class
+                  {classes.find((c) => String(c.id) === String(form.class_from))?.name || "Select class"}
                 </button>
-              </label>
-              <select
-                value={form.class_from}
-                onChange={(e) => setForm({ ...form, class_from: e.target.value })}
-                className="w-full border rounded-md px-3 py-2 text-sm mt-1"
-              >
-                <option value="">Select class</option>
-                {classes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                {showClassDropdown && (
+                  <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto border rounded-md bg-white shadow-lg">
+                    {classes.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between px-3 py-2 text-sm hover:bg-gray-50">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForm({ ...form, class_from: String(c.id) });
+                            setShowClassDropdown(false);
+                          }}
+                          className="flex-1 text-left"
+                        >
+                          {c.name}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClass(c.id)}
+                          className="ml-2 p-1 text-red-600 hover:bg-red-50 rounded"
+                          title={`Remove ${c.name}`}
+                          aria-label={`Remove ${c.name}`}
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>

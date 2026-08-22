@@ -54,3 +54,17 @@ export const getEventComments = (eventId) =>
   API.get("/events/comments/", { params: { event: eventId } });
 
 export const createEventComment = (data) => API.post("/events/comments/", data);
+
+/* ---------------- Edit requests (unlock an approved event) ---------------- */
+
+export const getEventEditRequests = (params = {}) =>
+  API.get("/events/edit-requests/", { params });
+
+export const createEventEditRequest = (eventId, reason) =>
+  API.post("/events/edit-requests/", { event: eventId, reason });
+
+export const approveEventEditRequest = (id, note = "") =>
+  API.patch(`/events/edit-requests/${id}/approve/`, { note });
+
+export const denyEventEditRequest = (id, note = "") =>
+  API.patch(`/events/edit-requests/${id}/deny/`, { note });

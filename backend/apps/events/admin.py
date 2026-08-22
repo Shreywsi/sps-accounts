@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from apps.events.models import Event, EventCategory, EventComment, EventEntry
+from apps.events.models import (
+    Event,
+    EventCategory,
+    EventComment,
+    EventEditRequest,
+    EventEntry,
+)
 
 
 @admin.register(Event)
@@ -27,3 +33,10 @@ class EventEntryAdmin(admin.ModelAdmin):
 @admin.register(EventComment)
 class EventCommentAdmin(admin.ModelAdmin):
     list_display = ("event", "entry", "author", "created_at")
+
+
+@admin.register(EventEditRequest)
+class EventEditRequestAdmin(admin.ModelAdmin):
+    list_display = ("event", "requested_by", "status", "reviewed_by", "created_at")
+    list_filter = ("status",)
+    search_fields = ("event__name", "requested_by__username")

@@ -160,3 +160,63 @@ export function EntryFormModal({ category, defaultDate, onClose, onSubmit }) {
     </Modal>
   );
 }
+/* Ask the admin to unlock an APPROVED (locked) event so the operator
+   can go back in and make changes. */
+export function EditRequestModal({ eventName, onClose, onSubmit }) {
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!reason.trim()) return;
+    setSaving(true);
+    setError("");
+    try {
+      await onSubmit(reason.trim());
+      onClose();
+    } catch (err) {
+      setError(
+        err?.response?.data?.detail ||
+          Object.values(err?.response?.data || {})[0] ||
+          "Couldn't send the request. Try again."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal title={`Request edit access — "${eventName}"`} onClose={onClose} small>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <p className="text-xs text-slate-500">
+          This event is approved and locked. Tell the admin why you need to
+          edit it — they'll unlock it if they approve your request.
+        </p>
+        <Field label="Reason">
+          <textarea
+            autoFocus
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={3}
+            placeholder="e.g. Forgot to add the tent rental receipt"
+            className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </Field>
+        {error && <p className="text-xs text-rose-600">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-3.5 py-2 text-sm rounded-md border border-slate-200">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving || !reason.trim()}
+            className="px-3.5 py-2 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {saving ? "Sending…" : "Send request"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
