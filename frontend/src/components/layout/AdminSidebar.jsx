@@ -7,6 +7,7 @@ import {
   Receipt,
   MessageSquare,
   ClipboardCheck,
+  FolderKanban,
 } from "lucide-react";
 
 import { NavLink, useNavigate } from "react-router-dom";
@@ -16,6 +17,7 @@ const menu = [
   { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { name: "Students", path: "/students", icon: Users },
   { name: "Expense Reports", path: "/expenses/reports", icon: Receipt },
+  { name: "Events", path: "/admin/events", icon: FolderKanban },
   { name: "Messages", path: "/messages", icon: MessageSquare },
   { name: "Pending Operators", path: "/pending-users", icon: UserCheck },
   { name: "Transaction Approvals", path: "/admin/approvals", icon: ClipboardCheck },

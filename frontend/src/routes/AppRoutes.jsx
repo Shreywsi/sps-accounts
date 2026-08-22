@@ -23,6 +23,11 @@ import AdminStudentDetail from "../pages/AdminStudentDetail";
 import OperatorLedgerSheet from '../pages/operator/OperatorLedgerSheet';
 import AdminApprovals from '../pages/AdminApprovals';
 
+import OperatorEvents from '../pages/operator/OperatorEvents';
+import OperatorEventDetail from '../pages/operator/OperatorEventDetail';
+import AdminEvents from '../pages/AdminEvents';
+import AdminEventReview from '../pages/AdminEventReview';
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -110,6 +115,28 @@ export default function AppRoutes() {
         }
       />
 
+      <Route
+        path="/admin/events"
+        element={
+          <ProtectedRoute allowedRole="ADMIN">
+            <AdminLayout>
+              <AdminEvents />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/events/:eventId"
+        element={
+          <ProtectedRoute allowedRole="ADMIN">
+            <AdminLayout>
+              <AdminEventReview />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
 
       {/* ================= OPERATOR ROUTES ================= */}
 
@@ -182,6 +209,28 @@ export default function AppRoutes() {
           <ProtectedRoute allowedRole="OPERATOR">
             <OperatorLayout>
               <OperatorLedgerSheet />
+            </OperatorLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/operator/events"
+        element={
+          <ProtectedRoute allowedRole="OPERATOR">
+            <OperatorLayout>
+              <OperatorEvents />
+            </OperatorLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/operator/events/:eventId"
+        element={
+          <ProtectedRoute allowedRole="OPERATOR">
+            <OperatorLayout>
+              <OperatorEventDetail />
             </OperatorLayout>
           </ProtectedRoute>
         }

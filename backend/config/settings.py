@@ -59,6 +59,8 @@ INSTALLED_APPS = [
     "apps.expenses",
     "apps.transactions",
     "apps.notifications",
+    "apps.events",
+    
 ]
 
 MIDDLEWARE = [

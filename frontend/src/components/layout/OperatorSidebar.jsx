@@ -4,6 +4,7 @@ import {
   Receipt,
   MessageSquare,
   LogOut,
+  FolderKanban,
 } from "lucide-react";
 
 import { NavLink, useNavigate } from "react-router-dom";
@@ -13,6 +14,7 @@ const menu = [
   { name: "Dashboard", path: "/operator/dashboard", icon: LayoutDashboard },
   { name: "Students", path: "/operator/students", icon: Users },
   { name: "Expenses", path: "/operator/ledger", icon: Receipt }, // Updated path
+  { name: "Events", path: "/operator/events", icon: FolderKanban },
   { name: "Messages", path: "/operator/messages", icon: MessageSquare },
 ];
 
