@@ -20,6 +20,12 @@ class FeeStructure(models.Model):
         related_name="fee_structures",
     )
 
+    due_date = models.DateField(null=True, blank=True)
+
+    late_fee_per_day = models.DecimalField(
+        max_digits=8, decimal_places=2, default=0,
+    )
+
     is_active = models.BooleanField(
         default=True,
     )

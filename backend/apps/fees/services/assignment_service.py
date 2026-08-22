@@ -15,6 +15,10 @@ class FeeAssignmentService:
         assignment, created = StudentFee.objects.get_or_create(
             student=student,
             fee_structure=fee_structure,
+            defaults={
+                "due_date": fee_structure.due_date,
+                "late_fee_per_day": fee_structure.late_fee_per_day,
+            },
         )
 
         return assignment, created
@@ -36,6 +40,10 @@ class FeeAssignmentService:
             _, created = StudentFee.objects.get_or_create(
                 student=student,
                 fee_structure=fee_structure,
+                defaults={
+                    "due_date": fee_structure.due_date,
+                    "late_fee_per_day": fee_structure.late_fee_per_day,
+                },
             )
 
             if created:

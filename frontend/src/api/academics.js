@@ -25,3 +25,6 @@ export const updateSection = (id, data) =>
 
 export const deleteSection = (id) =>
   API.delete(`/academics/sections/${id}/`);
+
+export const getSessions = () =>
+  API.get("/academics/sessions/");

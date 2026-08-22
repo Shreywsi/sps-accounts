@@ -8,14 +8,14 @@ import {
   MessageSquare,
   ClipboardCheck,
   FolderKanban,
+  Wallet,
 } from "lucide-react";
-
-import { NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 
 const menu = [
   { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { name: "Students", path: "/students", icon: Users },
+  { name: "Fee Structure", path: "/fees/structure", icon: Wallet },
+  { name: "Fee Collection", path: "/fees/collect", icon: Receipt },
   { name: "Expense Reports", path: "/expenses/reports", icon: Receipt },
   { name: "Events", path: "/admin/events", icon: FolderKanban },
   { name: "Messages", path: "/messages", icon: MessageSquare },

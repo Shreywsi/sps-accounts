@@ -8,7 +8,6 @@ import Modal from "../../components/ui/Modal";
 import StudentForm from "../../components/students/StudentForm";
 import {
   getClasses,
-  createClass,
   getSections,
   createSection,
 } from "../../api/academics";
@@ -24,10 +23,6 @@ export default function OperatorStudents() {
   const [students, setStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [search, setSearch] = useState("");
-
-  const [showAddClass, setShowAddClass] = useState(false);
-  const [newClassName, setNewClassName] = useState("");
-  const [savingClass, setSavingClass] = useState(false);
 
   const [showAddSection, setShowAddSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
@@ -91,26 +86,6 @@ export default function OperatorStudents() {
     );
   });
 
-  const handleCreateClass = async (e) => {
-    e.preventDefault();
-    if (!newClassName.trim()) return;
-    setSavingClass(true);
-    try {
-      await createClass({ name: newClassName.trim() });
-      setNewClassName("");
-      setShowAddClass(false);
-      loadClasses();
-    } catch (err) {
-      console.error("Failed to create class:", err);
-      alert(
-        err.response?.data?.name?.[0] ||
-          "Failed to create class. It may already exist."
-      );
-    } finally {
-      setSavingClass(false);
-    }
-  };
-
   const handleCreateSection = async (e) => {
     e.preventDefault();
     if (!newSectionName.trim() || !selectedClassId) return;
@@ -163,27 +138,18 @@ export default function OperatorStudents() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Class
             </label>
-            <div className="flex gap-2">
-              <select
-                value={selectedClassId}
-                onChange={(e) => setSelectedClassId(e.target.value)}
-                className="flex-1 border rounded-md px-3 py-2 text-sm"
-              >
-                <option value="">All Classes</option>
-                {classes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => setShowAddClass(true)}
-                className="px-3 py-2 border rounded-md text-sm hover:bg-gray-50"
-              >
-                + Class
-              </button>
-            </div>
+            <select
+              value={selectedClassId}
+              onChange={(e) => setSelectedClassId(e.target.value)}
+              className="w-full border rounded-md px-3 py-2 text-sm"
+            >
+              <option value="">All Classes</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex-1">
@@ -293,33 +259,6 @@ export default function OperatorStudents() {
           </table>
         </Card>
       )}
-
-      <Modal
-        open={showAddClass}
-        onClose={() => setShowAddClass(false)}
-        title="Add Class"
-      >
-        <form onSubmit={handleCreateClass} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Class Name
-            </label>
-            <input
-              type="text"
-              value={newClassName}
-              onChange={(e) => setNewClassName(e.target.value)}
-              placeholder="e.g. Class 10"
-              required
-              className="w-full border rounded-md px-3 py-2 text-sm"
-            />
-          </div>
-          <div className="flex gap-3">
-            <Button type="submit" disabled={savingClass}>
-              {savingClass ? "Saving..." : "Add Class"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
 
       <Modal
         open={showAddSection}

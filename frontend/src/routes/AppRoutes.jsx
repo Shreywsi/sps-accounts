@@ -28,6 +28,8 @@ import OperatorEventDetail from '../pages/operator/OperatorEventDetail';
 import AdminEvents from '../pages/AdminEvents';
 import AdminEventReview from '../pages/AdminEventReview';
 
+import Fees from "../pages/Fees";
+import OperatorFeeCollection from "../pages/operator/OperatorFeeCollection";
 export default function AppRoutes() {
   return (
     <Routes>
@@ -231,6 +233,38 @@ export default function AppRoutes() {
           <ProtectedRoute allowedRole="OPERATOR">
             <OperatorLayout>
               <OperatorEventDetail />
+            </OperatorLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/fees/structure"
+        element={
+          <ProtectedRoute allowedRole="ADMIN">
+            <AdminLayout>
+              <Fees />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/operator/fees/structure"
+        element={
+          <ProtectedRoute allowedRole="OPERATOR">
+            <OperatorLayout>
+              <Fees />
+            </OperatorLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/operator/fees/collect"
+        element={
+          <ProtectedRoute allowedRole="OPERATOR">
+            <OperatorLayout>
+              <OperatorFeeCollection />
             </OperatorLayout>
           </ProtectedRoute>
         }
