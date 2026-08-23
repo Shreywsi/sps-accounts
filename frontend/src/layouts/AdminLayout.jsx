@@ -13,7 +13,7 @@ export default function AdminLayout({ children }) {
       {/* overlay for mobile when sidebar is open */}
       {mobileOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black bg-opacity-40 z-30"
+          className="md:hidden fixed inset-0 bg-black/40 z-30"
           onClick={() => setMobileOpen(false)}
         />
       )}

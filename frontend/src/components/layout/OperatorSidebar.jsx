@@ -5,8 +5,6 @@ import {
   MessageSquare,
   LogOut,
   FolderKanban,
-  Wallet,
-  CreditCard,
 } from "lucide-react";
 
 import { NavLink, useNavigate } from "react-router-dom";
@@ -15,8 +13,6 @@ import { useAuth } from "../../context/AuthContext";
 const menu = [
   { name: "Dashboard", path: "/operator/dashboard", icon: LayoutDashboard },
   { name: "Students", path: "/operator/students", icon: Users },
-  { name: "Fee Structure", path: "/operator/fees/structure", icon: Wallet },
-  { name: "Fee Collection", path: "/operator/fees/collect", icon: CreditCard },
   { name: "Expenses", path: "/operator/ledger", icon: Receipt },
   { name: "Events", path: "/operator/events", icon: FolderKanban },
   { name: "Messages", path: "/operator/messages", icon: MessageSquare },

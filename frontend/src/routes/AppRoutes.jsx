@@ -8,7 +8,6 @@ import Dashboard from "../pages/Dashboard";
 import Students from "../pages/Students";
 import PendingUsers from "../pages/PendingUsers";
 import NotFound from "../pages/NotFound";
-import FeeCollection from "../pages/FeeCollection";
 import ExpenseReports from "../pages/ExpenseReports";
 import Messages from "../pages/Messages";
 
@@ -30,9 +29,6 @@ import OperatorEventDetail from '../pages/operator/OperatorEventDetail';
 import AdminEvents from '../pages/AdminEvents';
 import AdminEventReview from '../pages/AdminEventReview';
 import AdminRequests from '../pages/AdminRequests';
-
-import Fees from "../pages/Fees";
-import OperatorFeeCollection from "../pages/operator/OperatorFeeCollection";
 
 import ActivityDashboard from "../features/dashboard/ActivityDashboard";
 import FinancialDashboard from "../features/dashboard/FinancialDashboard";
@@ -99,17 +95,6 @@ export default function AppRoutes() {
           <ProtectedRoute allowedRole="ADMIN">
             <AdminLayout>
               <PendingUsers />
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/fees/collect"
-        element={
-          <ProtectedRoute allowedRole="ADMIN">
-            <AdminLayout>
-              <FeeCollection />
             </AdminLayout>
           </ProtectedRoute>
         }
@@ -268,38 +253,7 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/fees/structure"
-        element={
-          <ProtectedRoute allowedRole="ADMIN">
-            <AdminLayout>
-              <Fees />
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
 
-      <Route
-        path="/operator/fees/structure"
-        element={
-          <ProtectedRoute allowedRole="OPERATOR">
-            <OperatorLayout>
-              <Fees />
-            </OperatorLayout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/operator/fees/collect"
-        element={
-          <ProtectedRoute allowedRole="OPERATOR">
-            <OperatorLayout>
-              <OperatorFeeCollection />
-            </OperatorLayout>
-          </ProtectedRoute>
-        }
-      />
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
 
