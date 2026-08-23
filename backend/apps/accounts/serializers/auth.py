@@ -39,7 +39,16 @@ class LoginSerializer(serializers.Serializer):
 class SignupSerializer(serializers.ModelSerializer):
 
     password = serializers.CharField(
-        write_only=True
+        write_only=True,
+        min_length=8,
+        help_text="Password must be at least 8 characters long"
+    )
+
+    phone = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=15,
+        help_text="Phone number (optional)"
     )
 
     class Meta:
@@ -52,6 +61,23 @@ class SignupSerializer(serializers.ModelSerializer):
             "phone",
             "password",
         ]
+
+    def validate_username(self, value):
+        if len(value) < 3:
+            raise serializers.ValidationError("Username must be at least 3 characters long")
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Username already exists")
+        return value
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email already exists")
+        return value
+
+    def validate(self, attrs):
+        if not attrs.get('email'):
+            raise serializers.ValidationError("Email is required")
+        return attrs
 
     def create(self, validated_data):
 

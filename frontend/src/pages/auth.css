@@ -250,6 +250,19 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.auth-input.pl-10 {
+  padding-left: 42px;
+}
+
+.auth-input.pr-10 {
+  padding-right: 42px;
+}
+
+.auth-input.pl-10.pr-10 {
+  padding-left: 42px;
+  padding-right: 42px;
+}
+
 .auth-input::placeholder {
   color: #a8adb8;
 }

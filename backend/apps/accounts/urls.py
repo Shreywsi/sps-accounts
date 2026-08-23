@@ -7,12 +7,20 @@ from apps.accounts.views.auth import (
 from apps.accounts.views.users import (
     PendingUsersView,
     ApprovedUsersView,
+    RejectedUsersView,
     ApproveUserView,
     RevokeUserView,
 )
+from apps.accounts.views.password_reset import (
+    ForgotPasswordView,
+    ResetPasswordView,
+)
+
 urlpatterns = [
     path("login/", LoginView.as_view()),
     path("signup/", SignupView.as_view()),
+    path("forgot-password/", ForgotPasswordView.as_view()),
+    path("reset-password/", ResetPasswordView.as_view()),
     path(
         "users/pending/",
         PendingUsersView.as_view()
@@ -21,7 +29,10 @@ urlpatterns = [
         "users/approved/",
         ApprovedUsersView.as_view()
     ),
-
+    path(
+        "users/rejected/",
+        RejectedUsersView.as_view()
+    ),
     path(
         "users/<uuid:user_id>/approve/",
         ApproveUserView.as_view()
@@ -30,9 +41,6 @@ urlpatterns = [
         "users/<uuid:user_id>/revoke/",
         RevokeUserView.as_view()
     ),
-    path("login/", LoginView.as_view()),
-    path("signup/", SignupView.as_view()),
-
     path(
         "refresh/",
         TokenRefreshView.as_view(),

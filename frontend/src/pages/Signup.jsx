@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import API from "../api/axios";
 import "./auth.css";
 
@@ -44,16 +45,72 @@ export default function Signup() {
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState("");
 
   const handleChange = (e) => {
     setForm({
       ...form,
       [e.target.name]: e.target.value,
     });
+
+    // Password strength check
+    if (e.target.name === "password") {
+      checkPasswordStrength(e.target.value);
+    }
+  };
+
+  const checkPasswordStrength = (password) => {
+    if (password.length === 0) {
+      setPasswordStrength("");
+      return;
+    }
+
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+    if (password.match(/\d/)) strength++;
+    if (password.match(/[^a-zA-Z\d]/)) strength++;
+
+    if (strength <= 1) setPasswordStrength("Weak");
+    else if (strength <= 2) setPasswordStrength("Medium");
+    else if (strength <= 3) setPasswordStrength("Strong");
+    else setPasswordStrength("Very Strong");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation
+    if (!form.username || form.username.length < 3) {
+      setIsError(true);
+      setMessage("Username must be at least 3 characters long");
+      return;
+    }
+
+    if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) {
+      setIsError(true);
+      setMessage("Please enter a valid email address");
+      return;
+    }
+
+    if (!form.phone || form.phone.length < 10) {
+      setIsError(true);
+      setMessage("Please enter a valid phone number");
+      return;
+    }
+
+    if (!form.password || form.password.length < 8) {
+      setIsError(true);
+      setMessage("Password must be at least 8 characters long");
+      return;
+    }
+
+    if (passwordStrength === "Weak") {
+      setIsError(true);
+      setMessage("Please choose a stronger password");
+      return;
+    }
 
     setLoading(true);
     setMessage("");
@@ -72,7 +129,30 @@ export default function Signup() {
       console.log(error.response);
 
       setIsError(true);
-      setMessage(error.response?.data?.detail || "Signup failed. Please try again.");
+      
+      // Handle different error formats
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        
+        // Check for field-specific errors
+        if (errorData.username) {
+          setMessage(errorData.username[0]);
+        } else if (errorData.email) {
+          setMessage(errorData.email[0]);
+        } else if (errorData.password) {
+          setMessage(errorData.password[0]);
+        } else if (errorData.phone) {
+          setMessage(errorData.phone[0]);
+        } else if (errorData.non_field_errors) {
+          setMessage(errorData.non_field_errors[0]);
+        } else if (errorData.detail) {
+          setMessage(errorData.detail);
+        } else {
+          setMessage("Signup failed. Please check your input and try again.");
+        }
+      } else {
+        setMessage("Signup failed. Please try again.");
+      }
     }
 
     setLoading(false);
@@ -226,16 +306,38 @@ export default function Signup() {
               <label className="auth-label" htmlFor="password">
                 Password
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                className="auth-input"
-                placeholder="Create a password"
-                value={form.password}
-                onChange={handleChange}
-                autoComplete="new-password"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  className="auth-input pr-10"
+                  placeholder="Create a password"
+                  value={form.password}
+                  onChange={handleChange}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {passwordStrength && (
+                <div className="mt-1 text-xs">
+                  <span className={`font-medium ${
+                    passwordStrength === "Weak" ? "text-red-600" :
+                    passwordStrength === "Medium" ? "text-yellow-600" :
+                    passwordStrength === "Strong" ? "text-green-600" :
+                    "text-green-700"
+                  }`}>
+                    Password strength: {passwordStrength}
+                  </span>
+                </div>
+              )}
             </div>
 
             {message && (

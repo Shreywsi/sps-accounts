@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import { loginUser } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 import "./auth.css";
@@ -41,6 +42,7 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setForm({
@@ -52,6 +54,17 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validation
+    if (!form.username || form.username.length < 3) {
+      setError("Please enter a valid username");
+      return;
+    }
+
+    if (!form.password || form.password.length < 1) {
+      setError("Please enter your password");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -61,19 +74,19 @@ export default function Login() {
       login(
         res.data.user,
         res.data.tokens.access
-        );
+      );
 
-        localStorage.setItem(
+      localStorage.setItem(
         "refreshToken",
         res.data.tokens.refresh
-        );
+      );
 
-        // Redirect based on role
-        if (res.data.user.role === "ADMIN") {
+      // Redirect based on role
+      if (res.data.user.role === "ADMIN") {
         navigate("/dashboard");
-        } else if (res.data.user.role === "OPERATOR") {
+      } else if (res.data.user.role === "OPERATOR") {
         navigate("/operator/dashboard");
-        }
+      }
     } catch (err) {
       setError(
         err.response?.data?.non_field_errors?.[0] ||
@@ -171,16 +184,26 @@ export default function Login() {
               <label className="auth-label" htmlFor="password">
                 Password
               </label>
-              <input
-                id="password"
-                className="auth-input"
-                type="password"
-                name="password"
-                placeholder="Enter your password"
-                value={form.password}
-                onChange={handleChange}
-                autoComplete="current-password"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  className="auth-input pr-10"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Enter your password"
+                  value={form.password}
+                  onChange={handleChange}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             {error && <p className="auth-error">{error}</p>}
@@ -189,6 +212,16 @@ export default function Login() {
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
+
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              className="text-sm text-gray-600 hover:text-blue-600 underline"
+              onClick={() => navigate("/forgot-password")}
+            >
+              Forgot password?
+            </button>
+          </div>
 
           <p className="auth-switch">
             New operator?{" "}

@@ -2,6 +2,8 @@ import { Routes, Route } from "react-router-dom";
 
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
 import Dashboard from "../pages/Dashboard";
 import Students from "../pages/Students";
 import PendingUsers from "../pages/PendingUsers";
@@ -42,6 +44,8 @@ export default function AppRoutes() {
       {/* Public Routes */}
       <Route path="/" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
 
 
       {/* ================= ADMIN ROUTES ================= */}

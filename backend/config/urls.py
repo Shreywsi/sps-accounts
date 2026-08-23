@@ -22,10 +22,10 @@ urlpatterns = [
         include("apps.academics.urls"),
     ),
 
-    # path(
-    #     "api/v1/fees/",
-    #     include("apps.fees.urls"),
-    # ),
+    path(
+        "api/v1/fees/",
+        include("apps.fees.urls"),
+    ),
     path(
         "api/v1/fees/",
         include("apps.fees.simple_urls"),

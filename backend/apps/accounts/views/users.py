@@ -94,3 +94,16 @@ class RevokeUserView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class RejectedUsersView(APIView):
+
+    permission_classes = [IsAdminRole]
+
+    def get(self, request):
+        users = User.objects.filter(
+            role=User.Role.OPERATOR,
+            account_status=User.AccountStatus.REJECTED,
+        )
+        serializer = PendingUserSerializer(users, many=True)
+        return Response(serializer.data)
