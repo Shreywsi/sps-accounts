@@ -1,57 +1,33 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Users,
-  IndianRupee,
   Wallet,
-  Clock,
-  FileEdit,
-  ArrowRight,
-  Clock3,
 } from "lucide-react";
 
 import { getDashboardData } from "../api/fees";
-import { getEventEditRequests } from "../api/events";
 
 import StatCard from "../components/dashboard/StatCard";
 import RecentPayments from "../components/dashboard/RecentPayments";
+import UnpaidStudents from "../features/dashboard/UnpaidStudents";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [pendingRequests, setPendingRequests] = useState([]);
-  const [requestsLoading, setRequestsLoading] = useState(true);
 
   useEffect(() => {
     getDashboardData()
       .then((res) => {
+        console.log("Dashboard data:", res.data);
         setData(res.data);
       })
       .catch((err) => {
-        console.error(err);
+        console.error("Dashboard error:", err);
       })
       .finally(() => {
         setLoading(false);
       });
-  }, []);
-
-  useEffect(() => {
-    let ignore = false;
-    getEventEditRequests({ status: "PENDING" })
-      .then((res) => {
-        if (ignore) return;
-        setPendingRequests(res.data.results || res.data);
-        setRequestsLoading(false);
-      })
-      .catch((err) => {
-        if (!ignore) {
-          console.error(err);
-          setRequestsLoading(false);
-        }
-      });
-    return () => {
-      ignore = true;
-    };
   }, []);
 
   if (loading) {
@@ -67,41 +43,13 @@ export default function Dashboard() {
       title: "Total Students",
       value: data?.total_students ?? 0,
       icon: Users,
+      onClick: () => navigate("/students"),
     },
     {
-      title: "Assigned Fees",
-      value: `₹ ${data?.total_assigned ?? 0}`,
-      icon: IndianRupee,
-    },
-    {
-      title: "Collected",
-      value: `₹ ${data?.total_collected ?? 0}`,
+      title: "Financial",
+      value: "View Dashboard",
       icon: Wallet,
-    },
-    {
-      title: "Pending",
-      value: `₹ ${data?.total_due ?? 0}`,
-      icon: Clock,
-    },
-    {
-      title: "Received This Week",
-      value: `₹ ${data?.week_received ?? 0}`,
-      icon: Wallet,
-    },
-    {
-      title: "Spent This Week",
-      value: `₹ ${data?.week_spent ?? 0}`,
-      icon: IndianRupee,
-    },
-    {
-      title: "Received This Month",
-      value: `₹ ${data?.month_received ?? 0}`,
-      icon: Wallet,
-    },
-    {
-      title: "Spent This Month",
-      value: `₹ ${data?.month_spent ?? 0}`,
-      icon: IndianRupee,
+      onClick: () => navigate("/financial-dashboard"),
     },
   ];
 
@@ -122,7 +70,6 @@ export default function Dashboard() {
           grid
           grid-cols-1
           md:grid-cols-2
-          xl:grid-cols-4
           gap-5
         "
       >
@@ -132,53 +79,12 @@ export default function Dashboard() {
             title={card.title}
             value={card.value}
             icon={card.icon}
+            onClick={card.onClick}
           />
         ))}
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-lg p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-            <FileEdit size={15} /> Operator requests
-          </h2>
-          <Link
-            to="/admin/requests"
-            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
-          >
-            View all <ArrowRight size={12} />
-          </Link>
-        </div>
-
-        {requestsLoading ? (
-          <p className="text-sm text-slate-400 py-4">Loading…</p>
-        ) : pendingRequests.length === 0 ? (
-          <p className="text-sm text-slate-400 py-6 text-center">
-            No pending requests from operators right now.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {pendingRequests.slice(0, 5).map((r) => (
-              <Link
-                key={r.id}
-                to="/admin/requests"
-                className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-md px-3 py-2 hover:bg-amber-100/60"
-              >
-                <Clock3 size={13} className="text-amber-600 mt-0.5 shrink-0" />
-                <p className="text-sm text-slate-700">
-                  <span className="font-medium">{r.requested_by_name}</span> wants to
-                  edit <span className="font-medium">{r.event_name}</span>
-                  <span className="text-slate-400"> — {r.reason}</span>
-                </p>
-              </Link>
-            ))}
-            {pendingRequests.length > 5 && (
-              <p className="text-xs text-slate-400 pt-1">
-                +{pendingRequests.length - 5} more pending
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+      <UnpaidStudents />
 
       <RecentPayments
         payments={data?.recent_payments || []}

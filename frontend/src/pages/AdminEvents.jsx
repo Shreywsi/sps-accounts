@@ -7,11 +7,11 @@ import EventStatusBadge from "../features/events/EventStatusBadge";
 const inr = (n) =>
   `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
-const FILTERS = ["ALL", "SUBMITTED", "APPROVED", "REJECTED"];
+const FILTERS = ["ALL", "DRAFT", "SUBMITTED", "APPROVED", "REJECTED"];
 
 export default function AdminEvents() {
   const [events, setEvents] = useState([]);
-  const [filter, setFilter] = useState("SUBMITTED");
+  const [filter, setFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 

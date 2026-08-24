@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, CalendarDays, Trash2 } from "lucide-react";
-import { getEvents, createEvent, deleteEvent } from "../../api/events";
+import { Plus, CalendarDays, Trash2, Send } from "lucide-react";
+import { getEvents, createEvent, deleteEvent, updateEvent } from "../../api/events";
 import { Modal, Field } from "../../components/Modal";
 import EventStatusBadge from "../../features/events/EventStatusBadge";
 
@@ -54,6 +54,16 @@ export default function OperatorEvents() {
     }
   };
 
+  const handleSubmit = async (ev, e) => {
+    e.stopPropagation();
+    try {
+      await updateEvent(ev.id, { status: "SUBMITTED" });
+      await load();
+    } catch {
+      alert("Failed to submit event. Please try again.");
+    }
+  };
+
   return (
     <div className="max-w-4xl">
       <div className="flex items-center justify-between mb-6">
@@ -96,15 +106,26 @@ export default function OperatorEvents() {
               onClick={() => navigate(`/operator/events/${ev.id}`)}
               className="text-left bg-white border border-slate-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition cursor-pointer group relative"
             >
-              <button
-                onClick={(e) => handleDelete(ev, e)}
-                title="Delete event"
-                className="absolute top-3 right-3 p-1.5 rounded-md text-slate-300 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition"
-              >
-                <Trash2 size={15} />
-              </button>
+              <div className="absolute top-3 right-3 flex gap-1">
+                {ev.status === "DRAFT" && (
+                  <button
+                    onClick={(e) => handleSubmit(ev, e)}
+                    title="Submit for review"
+                    className="p-1.5 rounded-md text-slate-300 hover:text-blue-600 hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition"
+                  >
+                    <Send size={15} />
+                  </button>
+                )}
+                <button
+                  onClick={(e) => handleDelete(ev, e)}
+                  title="Delete event"
+                  className="p-1.5 rounded-md text-slate-300 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
 
-              <div className="flex items-center justify-between mb-1 pr-8">
+              <div className="flex items-center justify-between mb-1 pr-16">
                 <span className="font-medium text-slate-900">{ev.name}</span>
                 <EventStatusBadge status={ev.status} />
               </div>

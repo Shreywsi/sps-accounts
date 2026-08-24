@@ -8,22 +8,38 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.mixins import ActivityLoggingMixin
 from apps.expenses.models import Expense
+from apps.expenses.permissions import IsOwnerOrAdmin
 from apps.expenses.serializers import ExpenseSerializer
 from apps.notifications.utils import notify_admins
 
 
-class ExpenseViewSet(viewsets.ModelViewSet):
+class ExpenseViewSet(ActivityLoggingMixin, viewsets.ModelViewSet):
     queryset = Expense.objects.select_related(
         "category",
         "created_by",
     )
     serializer_class = ExpenseSerializer
+    permission_classes = [IsOwnerOrAdmin]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     filterset_fields = ["category", "payment_method", "created_by", "expense_date"]
 
+    activity_target_model = "Expense"
+    activity_watched_fields = ("title", "amount", "category_id", "expense_date")
+    activity_action_map = {
+        "create": "CREATE_EXPENSE",
+        "update": "UPDATE_EXPENSE",
+        "partial_update": "UPDATE_EXPENSE",
+        "destroy": "DELETE_EXPENSE",
+    }
+
+    def _describe(self, instance):
+        return f"{instance.title} (₹{instance.amount})"
+
     def perform_create(self, serializer):
         expense = serializer.save()
+        self._log("create", expense)
 
         notify_admins(
             actor=self.request.user,
@@ -92,7 +108,6 @@ class ExpenseSummaryAPIView(APIView):
             .order_by("-total")
         )
 
-        # Trend across all history, bucketed by the chosen granularity
         trend = list(
             Expense.objects.annotate(bucket=trunc)
             .values("bucket")

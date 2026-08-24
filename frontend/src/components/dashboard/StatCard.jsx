@@ -2,11 +2,13 @@ export default function StatCard({
   title,
   value,
   icon: Icon,
+  onClick,
 }) {
 
   return (
     <div
-      className="
+      onClick={onClick}
+      className={`
       bg-white
       border
       border-gray-200
@@ -14,7 +16,8 @@ export default function StatCard({
       flex
       items-center
       justify-between
-      "
+      ${onClick ? 'cursor-pointer hover:bg-gray-50 hover:border-blue-300 transition-all' : ''}
+      `}
     >
 
       <div>

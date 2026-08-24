@@ -41,6 +41,11 @@ export function AuthProvider({ children }) {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
+  
+  // Only redirect if not already on login page
+  if (window.location.pathname !== "/") {
+    window.location.href = "/";
+  }
 };
 
 

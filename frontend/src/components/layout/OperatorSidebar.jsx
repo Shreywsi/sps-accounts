@@ -5,6 +5,7 @@ import {
   MessageSquare,
   LogOut,
   FolderKanban,
+  Wallet,
 } from "lucide-react";
 
 import { NavLink, useNavigate } from "react-router-dom";
@@ -12,6 +13,7 @@ import { useAuth } from "../../context/AuthContext";
 
 const menu = [
   { name: "Dashboard", path: "/operator/dashboard", icon: LayoutDashboard },
+  { name: "Financial", path: "/financial-dashboard", icon: Wallet },
   { name: "Students", path: "/operator/students", icon: Users },
   { name: "Expenses", path: "/operator/ledger", icon: Receipt },
   { name: "Events", path: "/operator/events", icon: FolderKanban },
@@ -41,7 +43,7 @@ export default function OperatorSidebar() {
         </p>
       </div>
 
-      <nav className="space-y-1 flex-1">
+      <nav className="space-y-1 flex-1 overflow-y-auto">
 
         {menu.map((item) => {
 
@@ -68,7 +70,7 @@ export default function OperatorSidebar() {
 
       </nav>
 
-      <div className="pt-5 border-t">
+      <div className="pt-5 border-t mt-auto">
 
         <button
           onClick={handleLogout}

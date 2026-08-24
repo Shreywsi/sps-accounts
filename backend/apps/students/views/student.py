@@ -54,6 +54,16 @@ class StudentViewSet(viewsets.ModelViewSet):
         "verification_status",
     ]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Admins can see all students, operators can only see students they created
+        if self.request.user.role != "ADMIN":
+            # For operators, show all students since they need to see the full list
+            # If you want to restrict to only operator-created students, uncomment below:
+            # queryset = queryset.filter(created_by=self.request.user)
+            pass
+        return queryset
+
     def create(self, request, *args, **kwargs):
         data = _prepare_data(request)
         serializer = self.get_serializer(data=data)
@@ -104,18 +114,6 @@ class StudentViewSet(viewsets.ModelViewSet):
             except Exception:
                 logger.exception("Failed to delete old student photo from Cloudinary")
 
-        # Any edit (from PENDING, VERIFIED, or REJECTED) must go back
-        # through admin review instead of being silently accepted or
-        # blocked outright. This is what lets the operator actually
-        # submit changes: they save, it goes to PENDING, the admin
-        # verifies or rejects it, and the operator sees that result.
-        student.refresh_from_db()
-        student.verification_status = "PENDING"
-        student.verified_by = None
-        student.verified_at = None
-        student.rejection_reason = ""
-        student.save()
-
         # Log the update activity
         log_activity(
             actor=request.user,
@@ -158,95 +156,30 @@ class StudentViewSet(viewsets.ModelViewSet):
 
         return super().destroy(request, *args, **kwargs)
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminRole],
-    )
-    def verify(self, request, pk=None):
-        student = self.get_object()
+    @action(detail=False, methods=["get"])
+    def unpaid_students(self, request):
+        """Get list of students with unpaid fees"""
+        try:
+            # Get all active students
+            students = Student.objects.filter(
+                is_active=True
+            ).order_by('admission_no')
 
-        student.verification_status = "VERIFIED"
-        student.verified_by = request.user
-        student.verified_at = timezone.now()
-        student.rejection_reason = ""
-        student.save()
+            # Filter students who have unpaid fees
+            unpaid_list = []
+            for student in students:
+                try:
+                    # Calculate fee balance using the model property
+                    balance = student.fee_balance if hasattr(student, 'fee_balance') else 0
+                    if balance > 0:
+                        unpaid_list.append(student)
+                except Exception:
+                    # If fee calculation fails, skip this student
+                    continue
 
-        # Log the verification activity
-        log_activity(
-            actor=request.user,
-            action_type="VERIFY_STUDENT",
-            description=f"Verified student: {student.admission_no} - {student.first_name} {student.last_name}",
-            target_model="Student",
-            target_id=student.id,
-            target_description=str(student),
-            request=request,
-        )
-
-        return Response(
-            {"message": "Student verified successfully."},
-            status=status.HTTP_200_OK,
-        )
-
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminRole],
-    )
-    def reject(self, request, pk=None):
-        student = self.get_object()
-
-        reason = request.data.get("reason", "").strip()
-
-        student.verification_status = "REJECTED"
-        student.verified_by = None
-        student.verified_at = None
-        student.rejection_reason = reason
-        student.save()
-
-        # Log the rejection activity
-        log_activity(
-            actor=request.user,
-            action_type="REJECT_STUDENT",
-            description=f"Rejected student: {student.admission_no} - {student.first_name} {student.last_name}. Reason: {reason}",
-            target_model="Student",
-            target_id=student.id,
-            target_description=str(student),
-            metadata={"rejection_reason": reason},
-            request=request,
-        )
-
-        return Response(
-            {"message": "Student rejected successfully."},
-            status=status.HTTP_200_OK,
-        )
-
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAdminRole],
-    )
-    def reopen(self, request, pk=None):
-        student = self.get_object()
-
-        student.verification_status = "PENDING"
-        student.verified_by = None
-        student.verified_at = None
-        student.rejection_reason = ""
-        student.save()
-
-        # Log the reopen activity
-        log_activity(
-            actor=request.user,
-            action_type="REOPEN_STUDENT",
-            description=f"Reopened student: {student.admission_no} - {student.first_name} {student.last_name}",
-            target_model="Student",
-            target_id=student.id,
-            target_description=str(student),
-            request=request,
-        )
-
-        return Response(
-            {"message": "Student moved back to pending."},
-            status=status.HTTP_200_OK,
-        )
+            serializer = self.get_serializer(unpaid_list, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            logger.exception("Error fetching unpaid students")
+            # Return empty list instead of error to avoid breaking the dashboard
+            return Response([])

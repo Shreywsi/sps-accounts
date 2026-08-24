@@ -163,6 +163,51 @@ class Student(models.Model):
         help_text="Flexible additional fees (e.g., {'lab_fee': 500, 'sports_fee': 200})"
     )
 
+    # Fee Tracking
+    FEE_STATUS_CHOICES = [
+        ("UNPAID", "Unpaid"),
+        ("PARTIAL", "Partial"),
+        ("PAID", "Paid"),
+    ]
+
+    annual_fee_paid = models.BooleanField(
+        default=False,
+        help_text="Whether annual fee has been paid for current year"
+    )
+
+    total_fee_due = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Total fee amount due (calculated automatically)"
+    )
+
+    total_fee_paid = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Total fee amount paid (excluding annual fee)"
+    )
+
+    fee_status = models.CharField(
+        max_length=20,
+        choices=FEE_STATUS_CHOICES,
+        default="UNPAID",
+        help_text="Payment status"
+    )
+
+    last_payment_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Date of last payment"
+    )
+
+    next_payment_due = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Next payment due date"
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -199,3 +244,63 @@ class Student(models.Model):
                 if fee_name.endswith('_annual'):
                     total += fee_amount
         return total
+
+    @property
+    def fee_balance(self):
+        """Calculate remaining fee balance (excluding annual fee)"""
+        return self.total_fee_due - self.total_fee_paid
+
+    @property
+    def payment_progress(self):
+        """Calculate payment progress percentage (excluding annual fee)"""
+        if self.total_fee_due == 0:
+            return 0
+        return (self.total_fee_paid / self.total_fee_due) * 100
+
+    @property
+    def late_fee_due(self):
+        """Calculate late fee based on payment due date"""
+        from datetime import date
+        if not self.fee_due_day:
+            return 0
+        
+        today = date.today()
+        due_day = self.fee_due_day
+        
+        # Calculate last due date
+        if today.day > due_day:
+            # Payment is late this month
+            last_due_date = date(today.year, today.month, due_day)
+            days_late = (today - last_due_date).days
+        else:
+            # Payment not yet due this month
+            days_late = 0
+        
+        if days_late > 0:
+            return days_late * float(self.late_fee_per_day)
+        return 0
+
+    def calculate_total_fee_due(self):
+        """Calculate total fee due based on monthly recurring fees only"""
+        # Only calculate monthly recurring fees (monthly_fee + cab_fee + additional monthly fees)
+        total = self.total_monthly_fee
+        return total
+
+    def update_fee_status(self):
+        """Update fee status based on payments (excluding annual fee)"""
+        if self.total_fee_paid >= self.total_fee_due:
+            self.fee_status = "PAID"
+        elif self.total_fee_paid > 0:
+            self.fee_status = "PARTIAL"
+        else:
+            self.fee_status = "UNPAID"
+
+    def save(self, *args, **kwargs):
+        # Calculate total fee due if not set (monthly recurring fees only)
+        if self.total_fee_due == 0:
+            self.total_fee_due = self.calculate_total_fee_due()
+        
+        # Update fee status
+        self.update_fee_status()
+        
+        super().save(*args, **kwargs)

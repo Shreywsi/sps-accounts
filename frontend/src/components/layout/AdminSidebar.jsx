@@ -10,17 +10,13 @@ import {
   MessageSquare,
   ClipboardCheck,
   FolderKanban,
-  Wallet,
-  FileEdit,
 } from "lucide-react";
 
 const menu = [
   { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-  { name: "Financial", path: "/financial-dashboard", icon: Wallet },
   { name: "Students", path: "/students", icon: Users },
   { name: "Expense Reports", path: "/expenses/reports", icon: Receipt },
   { name: "Events", path: "/admin/events", icon: FolderKanban },
-  { name: "Requests", path: "/admin/requests", icon: FileEdit },
   { name: "Messages", path: "/messages", icon: MessageSquare },
   { name: "Pending Operators", path: "/pending-users", icon: UserCheck },
   { name: "Transaction Approvals", path: "/admin/approvals", icon: ClipboardCheck },
@@ -40,18 +36,19 @@ export default function AdminSidebar({ isOpen = false, onClose = () => {} }) {
   return (
     <aside
       className={`
-        fixed md:static
+        fixed md:sticky
         top-0 left-0
         z-40
-        w-64 md:w-64
-        h-full md:h-auto
+        w-64
+        h-screen
         bg-white
         px-4 md:px-5
         py-4 md:py-6
         transform transition-transform duration-200 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
-        md:translate-x-0 md:relative md:top-auto md:left-auto md:z-auto
-        flex md:flex-col flex-col
+        md:translate-x-0
+        flex flex-col
+        border-r
       `}
     >
 
@@ -76,7 +73,7 @@ export default function AdminSidebar({ isOpen = false, onClose = () => {} }) {
       </div>
 
 
-      <nav className="space-y-0 md:space-y-1 flex-1 flex md:flex-col gap-2 md:gap-0">
+      <nav className="space-y-1 flex-1 overflow-y-auto">
 
         {menu.map((item)=>{
 
@@ -111,31 +108,21 @@ export default function AdminSidebar({ isOpen = false, onClose = () => {} }) {
         })}
 
       </nav>
-        <div className="pt-5 md:pt-5 border-t md:border-t mt-2 md:mt-6 w-full md:w-auto">
 
-  <button
-    onClick={handleLogout}
-    className={
-      `
-      flex items-center gap-3 md:gap-2
-      px-3 py-2.5
-      text-sm md:text-sm
-      text-gray-700
-      hover:bg-gray-100
-      rounded-md
-      transition
-      w-full md:w-auto
-      `
-    }
-  >
+      <div className="pt-5 border-t mt-auto">
 
-    <LogOut size={18}/>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-md hover:bg-gray-100"
+        >
 
-    <span className="hidden md:inline">Logout</span>
+          <LogOut size={18}/>
 
-  </button>
+          <span className="hidden md:inline">Logout</span>
 
-</div>
+        </button>
+
+      </div>
     </aside>
   );
 }

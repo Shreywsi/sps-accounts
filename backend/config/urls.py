@@ -24,11 +24,11 @@ urlpatterns = [
 
     path(
         "api/v1/fees/",
-        include("apps.fees.urls"),
+        include("apps.fees.simple_urls"),
     ),
     path(
         "api/v1/fees/",
-        include("apps.fees.simple_urls"),
+        include("apps.fees.urls"),
     ),
     path(
         "api/v1/expenses/",

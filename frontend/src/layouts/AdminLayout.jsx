@@ -6,7 +6,7 @@ export default function AdminLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50">
 
       <AdminSidebar isOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
@@ -18,11 +18,11 @@ export default function AdminLayout({ children }) {
         />
       )}
 
-      <div className="flex-1 relative z-0">
+      <div className="flex-1 flex flex-col relative z-0">
 
         <Navbar onToggleSidebar={() => setMobileOpen((s) => !s)} />
 
-        <main className="p-4 md:p-6">
+        <main className="flex-1 p-4 md:p-6 overflow-auto">
           {children}
         </main>
 

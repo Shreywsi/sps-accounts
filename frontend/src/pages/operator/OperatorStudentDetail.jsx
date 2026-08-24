@@ -8,7 +8,6 @@ import { getStudentById } from "../../api/students";
 const STATUS_STYLES = {
   VERIFIED: "bg-green-100 text-green-700",
   REJECTED: "bg-red-100 text-red-700",
-  PENDING: "bg-yellow-100 text-yellow-700",
 };
 
 export default function OperatorStudentDetail() {
@@ -42,8 +41,7 @@ export default function OperatorStudentDetail() {
   };
 
   const handleSaved = () => {
-    // Go back to the list so the operator sees the refreshed
-    // "Pending" status reflecting the change they just submitted.
+    // Go back to the list after saving
     navigate("/operator/students");
   };
 
@@ -79,20 +77,13 @@ export default function OperatorStudentDetail() {
           {student.rejection_reason
             ? student.rejection_reason
             : "No reason was given."}{" "}
-          Fix the information below and save to resubmit for review.
-        </div>
-      )}
-
-      {student?.verification_status === "PENDING" && (
-        <div className="bg-yellow-50 text-yellow-700 text-sm px-4 py-3 rounded-md border border-yellow-200 mb-4">
-          This student is waiting for admin review.
+          Fix the information below and save to update the student.
         </div>
       )}
 
       {student?.verification_status === "VERIFIED" && (
         <div className="bg-blue-50 text-blue-700 text-sm px-4 py-3 rounded-md border border-blue-200 mb-4">
-          This student is verified. Saving any change here will send it back
-          to the admin for re-review.
+          This student is verified.
         </div>
       )}
 

@@ -1,13 +1,4 @@
-from rest_framework.permissions import BasePermission
-
-
-class IsAdminRole(BasePermission):
-    def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.role == "ADMIN"
-        )
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 
 def is_admin(user):
@@ -23,3 +14,29 @@ def can_edit_event(user, event):
     if is_admin(user):
         return True
     return event.created_by_id == user.id and event.status != event.Status.APPROVED
+
+
+class IsAdminRole(BasePermission):
+    def has_permission(self, request, view):
+        return is_admin(request.user)
+
+
+class EventObjectPermission(BasePermission):
+    """
+    Object-level guard for events:
+      - Admin can always write.
+      - Operator can only write to events they created, and only while
+        the event isn't APPROVED yet.
+
+    Enforced via has_object_permission, so it applies uniformly to
+    update / partial_update / destroy AND any custom @action that calls
+    self.get_object() (which triggers check_object_permissions()) —
+    unlike the old approach where can_edit_event() was only checked
+    manually inside perform_update/perform_destroy and could be
+    forgotten on a new endpoint.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+        return can_edit_event(request.user, obj)

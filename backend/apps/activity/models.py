@@ -22,6 +22,15 @@ class ActivityLog(models.Model):
         CREATE_EXPENSE = "CREATE_EXPENSE", "Create Expense"
         UPDATE_EXPENSE = "UPDATE_EXPENSE", "Update Expense"
         DELETE_EXPENSE = "DELETE_EXPENSE", "Delete Expense"
+        CREATE_TRANSACTION = "CREATE_TRANSACTION", "Create Transaction"
+        UPDATE_TRANSACTION = "UPDATE_TRANSACTION", "Update Transaction"
+        DELETE_TRANSACTION = "DELETE_TRANSACTION", "Delete Transaction"
+        APPROVE_TRANSACTION = "APPROVE_TRANSACTION", "Approve Transaction"
+        REJECT_TRANSACTION = "REJECT_TRANSACTION", "Reject Transaction"
+        CREATE_TRANSACTION_CATEGORY = "CREATE_TRANSACTION_CATEGORY", "Create Transaction Category"
+        DELETE_TRANSACTION_CATEGORY = "DELETE_TRANSACTION_CATEGORY", "Delete Transaction Category"
+        CREATE_TRANSACTION_COLUMN = "CREATE_TRANSACTION_COLUMN", "Create Transaction Column"
+        DELETE_TRANSACTION_COLUMN = "DELETE_TRANSACTION_COLUMN", "Delete Transaction Column"
         OTHER = "OTHER", "Other"
 
     id = models.UUIDField(

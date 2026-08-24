@@ -46,7 +46,7 @@ export const collectPayment = (data) =>
 
 // Dashboard / reports
 export const getDashboardData = () =>
-  API.get("/fees/dashboard/");
+  API.get("/fees/simple/dashboard/");
 
 export const getDueFeesReport = () =>
   API.get("/fees/reports/due-fees/");

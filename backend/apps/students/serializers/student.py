@@ -36,6 +36,9 @@ class StudentSerializer(serializers.ModelSerializer):
 
     total_monthly_fee = serializers.DecimalField(read_only=True, max_digits=10, decimal_places=2)
     total_annual_fee = serializers.DecimalField(read_only=True, max_digits=10, decimal_places=2)
+    fee_balance = serializers.DecimalField(read_only=True, max_digits=12, decimal_places=2)
+    payment_progress = serializers.DecimalField(read_only=True, max_digits=5, decimal_places=2)
+    late_fee_due = serializers.DecimalField(read_only=True, max_digits=10, decimal_places=2)
 
     class Meta:
         model = Student

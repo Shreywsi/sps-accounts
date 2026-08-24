@@ -13,8 +13,11 @@ class StudentAdmin(admin.ModelAdmin):
         "academic_section",
         "roll_number",
         "phone",
-        "total_monthly_fee",
-        "total_annual_fee",
+        "annual_fee_paid",
+        "total_fee_due",
+        "total_fee_paid",
+        "fee_balance",
+        "fee_status",
         "is_active",
     )
 
@@ -29,6 +32,8 @@ class StudentAdmin(admin.ModelAdmin):
         "school_class",
         "academic_section",
         "is_active",
+        "fee_status",
+        "annual_fee_paid",
     )
 
     ordering = (

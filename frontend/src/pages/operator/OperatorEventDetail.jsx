@@ -22,6 +22,7 @@ import {
   createEventComment,
   getEventEditRequests,
   createEventEditRequest,
+  updateEvent,
 } from "../../api/events";
 
 import CategoryTree from "../../features/events/CategoryTree";
@@ -125,6 +126,15 @@ export default function OperatorEventDetail() {
     reload();
   };
 
+  const handleSubmitEvent = async () => {
+    try {
+      await updateEvent(eventId, { status: "SUBMITTED" });
+      reload();
+    } catch (err) {
+      alert("Failed to submit event. Please try again.");
+    }
+  };
+
   if (loading) return <p className="text-sm text-gray-400">Loading…</p>;
   if (error || !event) return <p className="text-sm text-rose-500">{error}</p>;
 
@@ -210,6 +220,15 @@ export default function OperatorEventDetail() {
             This event was rejected — check the comments below, fix it up, and it'll
             go back to "Submitted" the next time you edit it.
           </p>
+        )}
+
+        {event.status === "DRAFT" && (
+          <button
+            onClick={handleSubmitEvent}
+            className="mt-3 w-full text-xs px-2.5 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Submit for review
+          </button>
         )}
       </div>
 

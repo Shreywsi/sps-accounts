@@ -31,10 +31,11 @@ class SimplePaymentViewSet(viewsets.ModelViewSet):
         # Generate receipt number
         import uuid
         receipt_number = f"REC-{uuid.uuid4().hex[:8].upper()}"
-        serializer.save(receipt_number=receipt_number, received_by=self.request.user)
+        
+        # Save the payment (status defaults to PENDING)
+        payment = serializer.save(receipt_number=receipt_number, received_by=self.request.user)
         
         # Log the activity
-        payment = serializer.instance
         log_activity(
             actor=self.request.user,
             action_type="CREATE_PAYMENT",
@@ -76,10 +77,28 @@ class SimplePaymentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
         payment = self.get_object()
-        payment.status = "APPROVED"
-        payment.reviewed_by = request.user
-        payment.reviewed_at = timezone.now()
-        payment.save()
+        
+        # Only update student fee tracking if this was previously pending
+        if payment.status != "APPROVED":
+            payment.status = "APPROVED"
+            payment.reviewed_by = request.user
+            payment.reviewed_at = timezone.now()
+            payment.save()
+            
+            # Update student's fee tracking only when approved
+            from decimal import Decimal
+            student = payment.student
+            
+            # Handle annual fee separately
+            if payment.payment_type == "ANNUAL":
+                student.annual_fee_paid = True
+            else:
+                # Only add to total_fee_paid for monthly/other payments
+                student.total_fee_paid += Decimal(str(payment.amount))
+                student.last_payment_date = payment.payment_date
+            
+            student.update_fee_status()
+            student.save(update_fields=['total_fee_paid', 'last_payment_date', 'fee_status', 'annual_fee_paid', 'updated_at'])
         
         log_activity(
             actor=request.user,

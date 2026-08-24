@@ -37,6 +37,8 @@ const InfoField = ({ icon: Icon, label, value }) => (
   </div>
 );
 
+const money = (value) => Number(value || 0).toFixed(2);
+
 const StudentDetailWithFees = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
@@ -46,6 +48,7 @@ const StudentDetailWithFees = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showFeeModal, setShowFeeModal] = useState(false);
   const [showEditPersonalModal, setShowEditPersonalModal] = useState(false);
+  const [showFeeOverview, setShowFeeOverview] = useState(true);
   const [paymentData, setPaymentData] = useState({
     payment_type: "MONTHLY",
     amount: "",
@@ -99,23 +102,31 @@ const StudentDetailWithFees = () => {
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     
-    const formData = new FormData();
-    formData.append("student", studentId);
-    formData.append("payment_type", paymentData.payment_type);
-    formData.append("amount", paymentData.amount);
-    formData.append("payment_method", paymentData.payment_method);
-    formData.append("notes", paymentData.notes);
-    
-    if (paymentData.receipt) {
-      formData.append("receipt", paymentData.receipt);
+    // Validate form data
+    if (!paymentData.amount || parseFloat(paymentData.amount) <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
     }
 
     try {
-      await API.post("/fees/simple-payments/", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const paymentPayload = {
+        student: studentId,
+        payment_type: paymentData.payment_type,
+        amount: paymentData.amount,
+        payment_method: paymentData.payment_method,
+        notes: paymentData.notes,
+      };
+
+      if (paymentData.receipt) {
+        const formData = new FormData();
+        Object.entries(paymentPayload).forEach(([key, value]) => {
+          formData.append(key, value);
+        });
+        formData.append("receipt", paymentData.receipt);
+        await API.post("/fees/simple-payments/", formData);
+      } else {
+        await API.post("/fees/simple-payments/", paymentPayload);
+      }
       toast.success("Payment recorded successfully");
       setShowPaymentModal(false);
       setPaymentData({
@@ -127,8 +138,28 @@ const StudentDetailWithFees = () => {
       });
       fetchPayments();
     } catch (error) {
-      toast.error("Failed to record payment");
       console.error("Error recording payment:", error);
+      
+      // Handle different error formats
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        
+        if (errorData.amount) {
+          toast.error(errorData.amount[0]);
+        } else if (errorData.student) {
+          toast.error(errorData.student[0]);
+        } else if (errorData.payment_type) {
+          toast.error(errorData.payment_type[0]);
+        } else if (errorData.non_field_errors) {
+          toast.error(errorData.non_field_errors[0]);
+        } else if (errorData.detail) {
+          toast.error(errorData.detail);
+        } else {
+          toast.error(JSON.stringify(errorData));
+        }
+      } else {
+        toast.error("Failed to record payment. Please try again.");
+      }
     }
   };
 
@@ -176,8 +207,6 @@ const StudentDetailWithFees = () => {
     switch (status) {
       case "APPROVED":
         return "bg-green-100 text-green-800";
-      case "PENDING":
-        return "bg-yellow-100 text-yellow-800";
       case "REJECTED":
         return "bg-red-100 text-red-800";
       default:
@@ -236,6 +265,15 @@ const StudentDetailWithFees = () => {
                     {student.section_name}
                   </span>
                 )}
+                <span className={`px-2 py-1 rounded text-sm ${
+                  student.fee_status === 'PAID' ? 'bg-green-100 text-green-800' :
+                  student.fee_status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  {student.fee_status === 'PAID' ? 'Fees Paid' :
+                   student.fee_status === 'PARTIAL' ? 'Partial Payment' :
+                   'Fees Due'}
+                </span>
               </div>
             </div>
           </div>
@@ -246,6 +284,107 @@ const StudentDetailWithFees = () => {
             Back
           </button>
         </div>
+      </div>
+
+      {/* Fee Overview Card */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Fee Overview</h2>
+          <button
+            onClick={() => setShowFeeOverview(!showFeeOverview)}
+            className="text-blue-600 hover:text-blue-800 text-sm"
+          >
+            {showFeeOverview ? 'Hide' : 'Show'}
+          </button>
+        </div>
+        
+        {showFeeOverview && (
+          <div className="space-y-4">
+            {/* Annual Fee Status */}
+            <div className={`p-4 rounded-lg ${student.annual_fee_paid ? 'bg-green-50' : 'bg-yellow-50'}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Annual Fee</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    ₹{money(student.annual_fee)}
+                  </p>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  student.annual_fee_paid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {student.annual_fee_paid ? '✓ Paid' : 'Pending'}
+                </span>
+              </div>
+            </div>
+
+            {/* Monthly Recurring Fees */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-gray-600">Monthly Fee Due</p>
+                <p className="text-2xl font-bold text-blue-900 mt-1">
+                  ₹{money(student.total_fee_due)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">per month</p>
+              </div>
+              <div className="p-4 bg-green-50 rounded-lg">
+                <p className="text-sm text-gray-600">Monthly Paid</p>
+                <p className="text-2xl font-bold text-green-900 mt-1">
+                  ₹{money(student.total_fee_paid)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">current month</p>
+              </div>
+              <div className={`p-4 rounded-lg ${
+                Number(student.fee_balance || 0) > 0 ? 'bg-red-50' : 'bg-green-50'
+              }`}>
+                <p className="text-sm text-gray-600">Balance Due</p>
+                <p className={`text-2xl font-bold mt-1 ${
+                  Number(student.fee_balance || 0) > 0 ? 'text-red-900' : 'text-green-900'
+                }`}>
+                  ₹{money(student.fee_balance)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">this month</p>
+              </div>
+            </div>
+
+            {/* Late Fee Information */}
+            {student.late_fee_due > 0 && (
+              <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-orange-800 font-medium">Late Fee Applied</p>
+                    <p className="text-lg font-bold text-orange-900 mt-1">
+                      ₹{money(student.late_fee_due)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-orange-700">
+                      Due by: {student.fee_due_day}th of each month
+                    </p>
+                    <p className="text-xs text-orange-600">
+                      ₹{money(student.late_fee_per_day)}/day after due date
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Payment Progress Bar */}
+        {Number(student.total_fee_due || 0) > 0 && (
+          <div className="mt-4">
+            <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <span>Payment Progress</span>
+              <span>{Number(student.payment_progress || 0).toFixed(1)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all"
+                style={{ width: `${student.payment_progress || 0}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Personal Information */}

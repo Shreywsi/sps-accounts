@@ -122,7 +122,7 @@ class SimplePayment(models.Model):
     )
 
     payment_date = models.DateField(
-        default=timezone.now,
+        default=timezone.localdate,
     )
 
     created_at = models.DateTimeField(

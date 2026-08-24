@@ -138,7 +138,7 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
     const file = e.target.files[0] || null;
     setPhotoFile(file);
     setPhotoPreview(file ? URL.createObjectURL(file) : null);
-    // Picking a new file always overrides any pending removal
+    // Picking a new file always overrides any removal
     if (file) setRemoveExistingPhoto(false);
   };
 

@@ -37,4 +37,20 @@ class SimplePaymentSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["receipt_number", "created_at", "updated_at"]
+        read_only_fields = [
+            "receipt_number",
+            "received_by",
+            "reviewed_by",
+            "reviewed_at",
+            "status",
+            "rejection_reason",
+            "created_at",
+            "updated_at",
+            "is_late",
+            "late_fee_amount",
+        ]
+
+    def validate(self, attrs):
+        if not attrs.get('amount') or float(attrs.get('amount', 0)) <= 0:
+            raise serializers.ValidationError("Amount must be greater than 0")
+        return attrs

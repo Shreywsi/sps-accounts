@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getStudents } from "../api/students";
-import { Trash2, Eye, Edit, Search, Filter } from "lucide-react";
+import { Trash2, Eye, Edit, Search } from "lucide-react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 
@@ -11,7 +11,6 @@ export default function Students() {
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState(null);
 
@@ -20,7 +19,7 @@ export default function Students() {
   }, []);
 
   useEffect(() => {
-    // Filter students based on search and status
+    // Filter students based on search only
     let filtered = students;
 
     // Search filter
@@ -33,15 +32,8 @@ export default function Students() {
       );
     }
 
-    // Status filter
-    if (filterStatus !== "all") {
-      filtered = filtered.filter(
-        (student) => student.verification_status === filterStatus
-      );
-    }
-
     setFilteredStudents(filtered);
-  }, [students, searchTerm, filterStatus]);
+  }, [students, searchTerm]);
 
   const fetchStudents = () => {
     getStudents()
@@ -83,19 +75,6 @@ export default function Students() {
     navigate(`/students/${student.id}`);
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "VERIFIED":
-        return "bg-green-100 text-green-800";
-      case "REJECTED":
-        return "bg-red-100 text-red-800";
-      case "PENDING":
-        return "bg-yellow-100 text-yellow-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -127,19 +106,7 @@ export default function Students() {
               className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Filter className="text-gray-400 w-5 h-5" />
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Status</option>
-              <option value="PENDING">Pending</option>
-              <option value="VERIFIED">Verified</option>
-              <option value="REJECTED">Rejected</option>
-            </select>
-          </div>
+
         </div>
 
         <div className="overflow-x-auto">
@@ -162,9 +129,6 @@ export default function Students() {
                   Phone
                 </th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                  Status
-                </th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">
                   Actions
                 </th>
               </tr>
@@ -172,7 +136,7 @@ export default function Students() {
             <tbody>
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-8 text-gray-500">
+                  <td colSpan="6" className="text-center py-8 text-gray-500">
                     No students found
                   </td>
                 </tr>
@@ -208,22 +172,6 @@ export default function Students() {
 
                     <td className="py-3 px-4 text-gray-700">
                       {student.phone || "N/A"}
-                    </td>
-
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                          student.verification_status
-                        )}`}
-                      >
-                        {student.verification_status}
-                      </span>
-                      {student.verification_status === "REJECTED" &&
-                        student.rejection_reason && (
-                          <div className="text-xs text-gray-500 mt-1 max-w-xs">
-                            Reason: {student.rejection_reason}
-                          </div>
-                        )}
                     </td>
 
                     <td className="py-3 px-4">

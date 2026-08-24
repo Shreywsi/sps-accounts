@@ -39,8 +39,12 @@ API.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    const isAuthRequest = ["/auth/login/", "/auth/signup/", "/auth/refresh/", "/auth/forgot-password/", "/auth/reset-password/"]
+      .some((path) => originalRequest?.url?.includes(path));
+
     if (
       error.response?.status === 401 &&
+      !isAuthRequest &&
       !originalRequest?._retry
     ) {
       originalRequest._retry = true;
@@ -71,16 +75,20 @@ API.interceptors.response.use(
           );
         }
 
-        originalRequest.headers.Authorization =
-          `Bearer ${res.data.access}`;
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers.Authorization = `Bearer ${res.data.access}`;
 
         return API(originalRequest);
       } catch (refreshError) {
+        console.log("Token refresh failed, logging out...");
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");
 
-        window.location.href = "/";
+        // Only redirect if not already on login page
+        if (window.location.pathname !== "/") {
+          window.location.href = "/";
+        }
 
         return Promise.reject(refreshError);
       }

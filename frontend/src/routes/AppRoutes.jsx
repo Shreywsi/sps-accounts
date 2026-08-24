@@ -28,7 +28,6 @@ import OperatorEvents from '../pages/operator/OperatorEvents';
 import OperatorEventDetail from '../pages/operator/OperatorEventDetail';
 import AdminEvents from '../pages/AdminEvents';
 import AdminEventReview from '../pages/AdminEventReview';
-import AdminRequests from '../pages/AdminRequests';
 
 import ActivityDashboard from "../features/dashboard/ActivityDashboard";
 import FinancialDashboard from "../features/dashboard/FinancialDashboard";
@@ -51,7 +50,7 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRole="ADMIN">
             <AdminLayout>
-              <ActivityDashboard />
+              <Dashboard />
             </AdminLayout>
           </ProtectedRoute>
         }
@@ -144,17 +143,6 @@ export default function AppRoutes() {
         }
       />
 
-      <Route
-        path="/admin/requests"
-        element={
-          <ProtectedRoute allowedRole="ADMIN">
-            <AdminLayout>
-              <AdminRequests />
-            </AdminLayout>
-          </ProtectedRoute>
-        }
-      />
-
 
       {/* ================= OPERATOR ROUTES ================= */}
 
@@ -207,6 +195,16 @@ export default function AppRoutes() {
           <ProtectedRoute allowedRole="OPERATOR">
             <OperatorLayout>
               <Messages />
+            </OperatorLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/operator/financial-dashboard"
+        element={
+          <ProtectedRoute allowedRole="OPERATOR">
+            <OperatorLayout>
+              <FinancialDashboard />
             </OperatorLayout>
           </ProtectedRoute>
         }

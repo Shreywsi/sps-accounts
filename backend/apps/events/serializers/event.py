@@ -36,7 +36,6 @@ class EventSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = (
-            "status",
             "created_by",
             "approved_by",
             "approved_at",
@@ -56,5 +55,25 @@ class EventSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data["created_by"] = self.context["request"].user
-        validated_data["status"] = Event.Status.SUBMITTED
+        # New events start as DRAFT (the model default). The operator
+        # explicitly submits it later via PATCH {status: "SUBMITTED"},
+        # which the frontend's "Submit for review" button already does.
+        validated_data.pop("status", None)
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        new_status = validated_data.get("status")
+        if new_status and new_status != instance.status:
+            # Operators may only move DRAFT -> SUBMITTED themselves.
+            # Everything else (APPROVED/REJECTED) goes through the
+            # dedicated approve/reject admin actions, not this endpoint.
+            request = self.context.get("request")
+            user = getattr(request, "user", None)
+            is_admin = bool(user and getattr(user, "role", None) == "ADMIN")
+            allowed_self_transition = (
+                instance.status == Event.Status.DRAFT
+                and new_status == Event.Status.SUBMITTED
+            )
+            if not is_admin and not allowed_self_transition:
+                validated_data.pop("status")
+        return super().update(instance, validated_data)

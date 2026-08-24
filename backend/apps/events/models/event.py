@@ -62,5 +62,22 @@ class Event(models.Model):
     class Meta:
         ordering = ["-event_date", "-created_at"]
 
+    # Fields that must never change once an event is APPROVED. status /
+    # approved_by / approved_at are deliberately excluded so the
+    # approve/reject actions can still update them.
+    LOCKED_FIELDS = ("name", "event_date", "description")
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            original = Event.objects.filter(pk=self.pk).first()
+            if original and original.status == self.Status.APPROVED:
+                for field in self.LOCKED_FIELDS:
+                    if getattr(original, field) != getattr(self, field):
+                        raise ValueError(
+                            f"Cannot modify '{field}' on an APPROVED event. "
+                            f"Reopen it first via an explicit admin action."
+                        )
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.name} ({self.event_date})"
