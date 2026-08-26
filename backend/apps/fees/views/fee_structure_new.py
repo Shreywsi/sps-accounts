@@ -18,6 +18,32 @@ from apps.fees.serializers.fee_head import FeeHeadSerializer
 from apps.fees.serializers.uniform_fee_item import UniformFeeItemSerializer
 from apps.fees.serializers.class_fee_mapping import ClassFeeMappingSerializer
 from apps.fees.serializers.student_fee_assignment import StudentFeeAssignmentSerializer
+from apps.notifications.utils import notify_admins
+
+import re
+
+# SchoolClass.name is free-text (e.g. "Class 2", "2", "Grade 2") while
+# ClassFeeMapping.class_name was seeded using Roman numerals ("I".."VIII")
+# plus "Pre-Nursery"/"Nursery"/"KG". An exact string match between the two
+# fails for every numbered class, so by_class() silently returned "no
+# mapping found" and the fee panel showed all zeros. This normalizes both
+# sides to a common form before comparing.
+_ROMAN_BY_ARABIC = {
+    "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V",
+    "6": "VI", "7": "VII", "8": "VIII", "9": "IX", "10": "X",
+    "11": "XI", "12": "XII",
+}
+
+
+def _normalize_class_name(value):
+    if not value:
+        return ""
+    text = value.strip().upper()
+    text = re.sub(r"^(CLASS|GRADE|STD\.?|STANDARD)\s*", "", text)
+    text = text.strip()
+    if text in _ROMAN_BY_ARABIC:
+        return _ROMAN_BY_ARABIC[text]
+    return text
 from apps.students.permissions import IsAdminOrOperator, IsAdminRole
 
 
@@ -75,17 +101,45 @@ class FeeHeadViewSet(viewsets.ModelViewSet):
     filterset_fields = ["group", "frequency", "is_active", "editable_by"]
 
     def get_permissions(self):
-        if self.action in ["create", "destroy"]:
+        if self.action == "destroy":
             return [IsAuthenticated(), IsAdminRole()]
-        if self.action in ["update", "partial_update"]:
+        if self.action in ["create", "update", "partial_update"]:
             # Check if the head is editable by operator
-            if self.request.user.role == "OPERATOR":
+            if self.action != "create" and self.request.user.role == "OPERATOR":
                 head = self.get_object()
                 if head.editable_by != "admin_operator":
                     from rest_framework.exceptions import PermissionDenied
                     raise PermissionDenied("This fee head can only be edited by admins")
             return [IsAuthenticated(), IsAdminOrOperator()]
         return [IsAuthenticated(), IsAdminOrOperator()]
+
+    def perform_create(self, serializer):
+        head = serializer.save()
+        if self.request.user.role == "OPERATOR":
+            notify_admins(
+                actor=self.request.user,
+                category="FEES",
+                title="New fee head created",
+                message=(
+                    f"{self.request.user.username} created fee head "
+                    f"'{head.label}' under {head.group}."
+                ),
+                link="/fees/fee-heads",
+            )
+
+    def perform_update(self, serializer):
+        head = serializer.save()
+        if self.request.user.role == "OPERATOR":
+            notify_admins(
+                actor=self.request.user,
+                category="FEES",
+                title="Fee head updated",
+                message=(
+                    f"{self.request.user.username} updated fee head "
+                    f"'{head.label}' under {head.group}."
+                ),
+                link="/fees/fee-heads",
+            )
 
 
 class UniformFeeItemViewSet(viewsets.ModelViewSet):
@@ -131,6 +185,17 @@ class ClassFeeMappingViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(session=active_session)
 
         mapping = queryset.filter(class_name=class_name).first()
+
+        # Exact match failed - fall back to normalized comparison so
+        # "Class 2", "2", "Grade 2", etc. all resolve to the same mapping
+        # stored as "II".
+        if not mapping:
+            target = _normalize_class_name(class_name)
+            for candidate in queryset:
+                if _normalize_class_name(candidate.class_name) == target:
+                    mapping = candidate
+                    break
+
         if mapping:
             serializer = self.get_serializer(mapping)
             return Response(serializer.data)

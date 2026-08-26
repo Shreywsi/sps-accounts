@@ -23,12 +23,17 @@ import {
   deleteClassMapping,
 } from "../api/feeStructure";
 import { useAuth } from "../context/AuthContext";
+import { getClasses } from "../api/academics";
 
 const TABS = ["Day Scholar", "Hostel", "Uniform", "Class Mappings"];
 
 export default function FeeStructureManagement() {
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN";
+  const isOperator = user?.role === "OPERATOR";
+  // Fee heads can be created/edited by admins and operators (backend: IsAdminOrOperator);
+  // only fee groups, uniform items, class mappings, and fee-head deletion stay admin-only.
+  const canManageHeads = isAdmin || isOperator;
 
   const [activeTab, setActiveTab] = useState("Day Scholar");
   const [sessions, setSessions] = useState([]);
@@ -46,6 +51,8 @@ export default function FeeStructureManagement() {
 
   // Class Mappings
   const [classMappings, setClassMappings] = useState([]);
+  const [mappingGroups, setMappingGroups] = useState([]); // all groups (both boarding types) for the mapping dropdowns
+  const [schoolClasses, setSchoolClasses] = useState([]);
 
   // Modals
   const [showFeeHeadModal, setShowFeeHeadModal] = useState(false);
@@ -61,6 +68,9 @@ export default function FeeStructureManagement() {
 
   useEffect(() => {
     loadData();
+    getClasses()
+      .then((res) => setSchoolClasses(res.data.results || res.data))
+      .catch((error) => console.error("Failed to load classes", error));
   }, []);
 
   useEffect(() => {
@@ -106,8 +116,12 @@ export default function FeeStructureManagement() {
         const itemsRes = await getUniformItems({ session: selectedSession, gender: uniformGender });
         setUniformItems(itemsRes.data);
       } else if (activeTab === "Class Mappings") {
-        const mappingsRes = await getClassMappings({ session: selectedSession });
+        const [mappingsRes, groupsRes] = await Promise.all([
+          getClassMappings({ session: selectedSession }),
+          getFeeCategoryGroups({ session: selectedSession }),
+        ]);
         setClassMappings(mappingsRes.data);
+        setMappingGroups(groupsRes.data);
       }
     } catch (error) {
       toast.error("Failed to load session data");
@@ -253,6 +267,43 @@ export default function FeeStructureManagement() {
     }
   };
 
+  const handleSaveMapping = async (formData) => {
+    try {
+      const data = {
+        ...formData,
+        session: selectedSession,
+      };
+
+      if (formData.id) {
+        await updateClassMapping(formData.id, data);
+        toast.success("Class mapping updated successfully");
+      } else {
+        await createClassMapping(data);
+        toast.success("Class mapping created successfully");
+      }
+
+      setShowMappingModal(false);
+      setEditingMapping(null);
+      loadSessionData();
+    } catch (error) {
+      toast.error("Failed to save class mapping");
+      console.error(error);
+    }
+  };
+
+  const handleDeleteMapping = async (id) => {
+    if (!confirm("Are you sure you want to delete this class mapping?")) return;
+
+    try {
+      await deleteClassMapping(id);
+      toast.success("Class mapping deleted successfully");
+      loadSessionData();
+    } catch (error) {
+      toast.error("Failed to delete class mapping");
+      console.error(error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -307,10 +358,11 @@ export default function FeeStructureManagement() {
 
       {/* Tab Content */}
       {activeTab === "Day Scholar" && (
-        <FeeStructureTab
+                <FeeStructureTab
           groups={feeGroups}
           heads={feeHeads}
           isAdmin={isAdmin}
+          canManageHeads={canManageHeads}
           boardingType="day_scholar"
           onAddGroup={() => {
             setEditingGroup({
@@ -346,10 +398,11 @@ export default function FeeStructureManagement() {
       )}
 
       {activeTab === "Hostel" && (
-        <FeeStructureTab
+                <FeeStructureTab
           groups={feeGroups}
           heads={feeHeads}
           isAdmin={isAdmin}
+          canManageHeads={canManageHeads}
           boardingType="hostel"
           onAddGroup={() => {
             setEditingGroup({
@@ -410,12 +463,23 @@ export default function FeeStructureManagement() {
       {activeTab === "Class Mappings" && (
         <ClassMappingsTab
           mappings={classMappings}
-          feeGroups={feeGroups}
+          feeGroups={mappingGroups}
+          schoolClasses={schoolClasses}
           isAdmin={isAdmin}
+          onAddMapping={() => {
+            setEditingMapping({
+              class_name: "",
+              day_scholar_group: "",
+              hostel_group: "",
+              default_uniform_gender_required: true,
+            });
+            setShowMappingModal(true);
+          }}
           onEditMapping={(mapping) => {
             setEditingMapping(mapping);
             setShowMappingModal(true);
           }}
+          onDeleteMapping={handleDeleteMapping}
         />
       )}
 
@@ -456,6 +520,20 @@ export default function FeeStructureManagement() {
           onSave={handleSaveUniformItem}
         />
       )}
+
+      {/* Class Mapping Modal */}
+      {showMappingModal && (
+        <MappingModal
+          mapping={editingMapping}
+          feeGroups={mappingGroups}
+          schoolClasses={schoolClasses}
+          onClose={() => {
+            setShowMappingModal(false);
+            setEditingMapping(null);
+          }}
+          onSave={handleSaveMapping}
+        />
+      )}
     </div>
   );
 }
@@ -465,6 +543,7 @@ function FeeStructureTab({
   groups,
   heads,
   isAdmin,
+  canManageHeads = isAdmin,
   onAddGroup,
   onDeleteGroup,
   onAddHead,
@@ -536,7 +615,7 @@ function FeeStructureTab({
 
             {isExpanded && (
               <div className="border-t p-4 space-y-4">
-                {isAdmin && (
+                                {canManageHeads && (
                   <div className="flex justify-end">
                     <button
                       onClick={() => onAddHead(group.id)}
@@ -550,6 +629,7 @@ function FeeStructureTab({
                 <FeeHeadsTable
                   heads={groupHeads}
                   isAdmin={isAdmin}
+                  canManageHeads={canManageHeads}
                   onEdit={onEditHead}
                   onDelete={onDeleteHead}
                   calculateTotal={calculateTotal}
@@ -575,6 +655,7 @@ function FeeStructureTab({
 function FeeHeadsTable({
   heads,
   isAdmin,
+  canManageHeads = isAdmin,
   onEdit,
   onDelete,
   calculateTotal,
@@ -592,37 +673,48 @@ function FeeHeadsTable({
             <th className="text-right py-2">Amount</th>
             <th className="text-right py-2">Annual</th>
             <th className="text-center py-2">Mandatory</th>
-            {isAdmin && <th className="text-right py-2">Actions</th>}
+            {canManageHeads && <th className="text-right py-2">Actions</th>}
           </tr>
         </thead>
         <tbody>
-          {heads.map((head) => (
-            <tr key={head.id} className="border-b">
-              <td className="py-2">{head.label}</td>
-              <td className="py-2 capitalize">{head.frequency}</td>
-              <td className="py-2 text-right">₹{head.amount}</td>
-              <td className="py-2 text-right">₹{head.annual_equivalent}</td>
-              <td className="py-2 text-center">
-                {head.is_mandatory ? "Yes" : "No"}
-              </td>
-              {isAdmin && (
-                <td className="py-2 text-right">
-                  <button
-                    onClick={() => onEdit(head)}
-                    className="text-blue-600 hover:text-blue-800 mr-2"
-                  >
-                    <Edit size={16} />
-                  </button>
-                  <button
-                    onClick={() => onDelete(head.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+          {heads.map((head) => {
+            // Operators can only edit heads explicitly marked editable by
+            // admin_operator (mirrors the backend's editable_by check);
+            // delete stays admin-only regardless.
+            const canEditThisHead =
+              isAdmin || (canManageHeads && head.editable_by === "admin_operator");
+            return (
+              <tr key={head.id} className="border-b">
+                <td className="py-2">{head.label}</td>
+                <td className="py-2 capitalize">{head.frequency}</td>
+                <td className="py-2 text-right">₹{head.amount}</td>
+                <td className="py-2 text-right">₹{head.annual_equivalent}</td>
+                <td className="py-2 text-center">
+                  {head.is_mandatory ? "Yes" : "No"}
                 </td>
-              )}
-            </tr>
-          ))}
+                {canManageHeads && (
+                  <td className="py-2 text-right">
+                    {canEditThisHead && (
+                      <button
+                        onClick={() => onEdit(head)}
+                        className="text-blue-600 hover:text-blue-800 mr-2"
+                      >
+                        <Edit size={16} />
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <button
+                        onClick={() => onDelete(head.id)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </td>
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
@@ -744,9 +836,21 @@ function UniformTab({
   );
 }
 
-function ClassMappingsTab({ mappings, feeGroups, isAdmin, onEditMapping }) {
+function ClassMappingsTab({ mappings, feeGroups, schoolClasses, isAdmin, onAddMapping, onEditMapping, onDeleteMapping }) {
   return (
     <div className="space-y-4">
+      {isAdmin && (
+        <div className="flex justify-end">
+          <button
+            onClick={onAddMapping}
+            className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-md text-sm"
+          >
+            <Plus size={16} />
+            Add Class Mapping
+          </button>
+        </div>
+      )}
+
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b">
@@ -770,9 +874,15 @@ function ClassMappingsTab({ mappings, feeGroups, isAdmin, onEditMapping }) {
                 <td className="py-2 text-right">
                   <button
                     onClick={() => onEditMapping(mapping)}
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-blue-600 hover:text-blue-800 mr-2"
                   >
                     <Edit size={16} />
+                  </button>
+                  <button
+                    onClick={() => onDeleteMapping(mapping.id)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <Trash2 size={16} />
                   </button>
                 </td>
               )}
@@ -780,6 +890,137 @@ function ClassMappingsTab({ mappings, feeGroups, isAdmin, onEditMapping }) {
           ))}
         </tbody>
       </table>
+
+      {mappings.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          No class mappings found for this session. Add one to link a class
+          to its fee group so students in that class show the right fees.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MappingModal({ mapping, feeGroups, schoolClasses, onClose, onSave }) {
+  const [formData, setFormData] = useState(
+    mapping || {
+      class_name: "",
+      day_scholar_group: "",
+      hostel_group: "",
+      default_uniform_gender_required: true,
+    }
+  );
+
+  const dayScholarGroups = feeGroups.filter((g) => g.boarding_type === "day_scholar");
+  const hostelGroups = feeGroups.filter((g) => g.boarding_type === "hostel");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave({
+      ...formData,
+      day_scholar_group: formData.day_scholar_group || null,
+      hostel_group: formData.hostel_group || null,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">
+            {mapping?.id ? "Edit Class Mapping" : "Add Class Mapping"}
+          </h2>
+          <button onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Class</label>
+            <select
+              value={formData.class_name}
+              onChange={(e) => setFormData({ ...formData, class_name: e.target.value })}
+              className="w-full border rounded-md px-3 py-2"
+              required
+            >
+              <option value="" disabled>
+                Select a class
+              </option>
+              {schoolClasses.map((cls) => (
+                <option key={cls.id} value={cls.name}>
+                  {cls.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Must match the class exactly as set on the student's profile.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Day Scholar Fee Group</label>
+            <select
+              value={formData.day_scholar_group || ""}
+              onChange={(e) => setFormData({ ...formData, day_scholar_group: e.target.value })}
+              className="w-full border rounded-md px-3 py-2"
+            >
+              <option value="">None</option>
+              {dayScholarGroups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Hostel Fee Group</label>
+            <select
+              value={formData.hostel_group || ""}
+              onChange={(e) => setFormData({ ...formData, hostel_group: e.target.value })}
+              className="w-full border rounded-md px-3 py-2"
+            >
+              <option value="">None</option>
+              {hostelGroups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="uniform_required"
+              checked={formData.default_uniform_gender_required}
+              onChange={(e) =>
+                setFormData({ ...formData, default_uniform_gender_required: e.target.checked })
+              }
+            />
+            <label htmlFor="uniform_required" className="text-sm">
+              Uniform selection applies to this class
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border rounded-md text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm"
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
