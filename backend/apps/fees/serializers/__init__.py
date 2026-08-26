@@ -3,3 +3,9 @@ from .fee_structure import FeeStructureSerializer
 from .fee_structure_item import FeeStructureItemSerializer
 from .student_fee import StudentFeeSerializer
 from .payment import PaymentSerializer
+from .fee_session import FeeSessionSerializer
+from .fee_category_group import FeeCategoryGroupSerializer
+from .fee_head import FeeHeadSerializer
+from .uniform_fee_item import UniformFeeItemSerializer
+from .class_fee_mapping import ClassFeeMappingSerializer
+from .student_fee_assignment import StudentFeeAssignmentSerializer

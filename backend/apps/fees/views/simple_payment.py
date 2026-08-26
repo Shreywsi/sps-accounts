@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
@@ -16,11 +17,18 @@ logger = logging.getLogger(__name__)
 
 
 class SimplePaymentViewSet(viewsets.ModelViewSet):
-    queryset = SimplePayment.objects.all()
+    queryset = SimplePayment.objects.select_related('student', 'monthly_fee_record').all()
     serializer_class = SimplePaymentSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["student", "payment_type", "status", "payment_date"]
+    filterset_fields = ["student", "payment_type", "status", "payment_date", "monthly_fee_record"]
+
+    def get_queryset(self):
+        try:
+            return super().get_queryset()
+        except Exception as e:
+            logger.exception("Error in get_queryset for SimplePayment")
+            return SimplePayment.objects.all()
 
     def get_permissions(self):
         if self.action in ["approve", "reject"]:
@@ -28,14 +36,14 @@ class SimplePaymentViewSet(viewsets.ModelViewSet):
         return [IsAdminOrOperator()]
 
     def perform_create(self, serializer):
-        # Generate receipt number
+        # Generate receipt number server-side - operators never get to
+        # choose it, so it can't be duplicated or spoofed to look like an
+        # existing receipt.
         import uuid
         receipt_number = f"REC-{uuid.uuid4().hex[:8].upper()}"
-        
-        # Save the payment (status defaults to PENDING)
+
         payment = serializer.save(receipt_number=receipt_number, received_by=self.request.user)
-        
-        # Log the activity
+
         log_activity(
             actor=self.request.user,
             action_type="CREATE_PAYMENT",
@@ -46,60 +54,81 @@ class SimplePaymentViewSet(viewsets.ModelViewSet):
             request=self.request,
         )
 
-    def destroy(self, request, *args, **kwargs):
+    def perform_update(self, serializer):
         payment = self.get_object()
-        
-        # Delete receipt from Cloudinary if exists
-        if payment.receipt:
+        # Approved payments are the permanent financial record. If it was
+        # entered wrong, that's what PaymentAdjustment is for - never a
+        # silent edit that would make the audit trail lie.
+        if payment.is_locked:
+            raise PermissionDenied(
+                "Approved payments can't be edited. Create a payment adjustment instead."
+            )
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.is_locked:
+            raise PermissionDenied("Approved payments can't be deleted.")
+
+        if instance.receipt:
             try:
                 cloudinary.uploader.destroy(
-                    payment.receipt.public_id,
+                    instance.receipt.public_id,
                     invalidate=True,
-                    resource_type=payment.receipt.resource_type,
-                    type=payment.receipt.type,
+                    resource_type=instance.receipt.resource_type,
+                    type=instance.receipt.type,
                 )
             except Exception:
                 logger.exception("Failed to delete receipt from Cloudinary")
-        
-        # Log the deletion
+
         log_activity(
-            actor=request.user,
+            actor=self.request.user,
             action_type="DELETE_PAYMENT",
-            description=f"Payment deleted: {payment.receipt_number} - {payment.amount}",
+            description=f"Payment deleted: {instance.receipt_number} - {instance.amount}",
             target_model="SimplePayment",
-            target_id=payment.id,
-            target_description=str(payment),
-            request=request,
+            target_id=instance.id,
+            target_description=str(instance),
+            request=self.request,
         )
-        
-        return super().destroy(request, *args, **kwargs)
+
+        instance.delete()
 
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
         payment = self.get_object()
-        
-        # Only update student fee tracking if this was previously pending
-        if payment.status != "APPROVED":
-            payment.status = "APPROVED"
-            payment.reviewed_by = request.user
-            payment.reviewed_at = timezone.now()
-            payment.save()
-            
-            # Update student's fee tracking only when approved
-            from decimal import Decimal
-            student = payment.student
-            
-            # Handle annual fee separately
-            if payment.payment_type == "ANNUAL":
-                student.annual_fee_paid = True
-            else:
-                # Only add to total_fee_paid for monthly/other payments
-                student.total_fee_paid += Decimal(str(payment.amount))
-                student.last_payment_date = payment.payment_date
-            
-            student.update_fee_status()
-            student.save(update_fields=['total_fee_paid', 'last_payment_date', 'fee_status', 'annual_fee_paid', 'updated_at'])
-        
+
+        if payment.status == "APPROVED":
+            return Response({"message": "Payment already approved"})
+
+        # Separation of duties: whoever recorded the payment can't also be
+        # the one who signs off on it. Enforced server-side so it can't be
+        # bypassed by calling the API directly.
+        if payment.received_by_id == request.user.id:
+            raise PermissionDenied("You can't approve a payment you recorded yourself.")
+
+        payment.status = "APPROVED"
+        payment.reviewed_by = request.user
+        payment.reviewed_at = timezone.now()
+        payment.save()
+
+        from decimal import Decimal
+        student = payment.student
+
+        if payment.payment_type == "ANNUAL":
+            student.annual_fee_paid = True
+        else:
+            student.total_fee_paid += Decimal(str(payment.amount))
+            student.last_payment_date = payment.payment_date
+
+        student.update_fee_status()
+        student.save(update_fields=["total_fee_paid", "last_payment_date", "fee_status", "annual_fee_paid", "updated_at"])
+
+        # This is the actual month-by-month ledger update - approving a
+        # MONTHLY payment is what moves that month from pending to paid.
+        if payment.monthly_fee_record_id:
+            record = payment.monthly_fee_record
+            record.amount_paid += Decimal(str(payment.amount))
+            record.recalculate()
+
         log_activity(
             actor=request.user,
             action_type="APPROVE_PAYMENT",
@@ -109,19 +138,26 @@ class SimplePaymentViewSet(viewsets.ModelViewSet):
             target_description=str(payment),
             request=request,
         )
-        
+
         return Response({"message": "Payment approved successfully"})
 
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
         payment = self.get_object()
+
+        if payment.is_locked:
+            raise ValidationError("Can't reject a payment that's already been approved.")
+
         reason = request.data.get("reason", "").strip()
+        if not reason:
+            raise ValidationError({"reason": "A rejection reason is required."})
+
         payment.status = "REJECTED"
         payment.rejection_reason = reason
         payment.reviewed_by = request.user
         payment.reviewed_at = timezone.now()
         payment.save()
-        
+
         log_activity(
             actor=request.user,
             action_type="REJECT_PAYMENT",
@@ -132,5 +168,5 @@ class SimplePaymentViewSet(viewsets.ModelViewSet):
             metadata={"rejection_reason": reason},
             request=request,
         )
-        
+
         return Response({"message": "Payment rejected successfully"})

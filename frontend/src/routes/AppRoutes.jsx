@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
@@ -15,12 +15,11 @@ import ProtectedRoute from "./ProtectedRoute";
 
 import AdminLayout from "../layouts/AdminLayout";
 import OperatorLayout from "../layouts/OperatorLayout";
+import RoleLayout from "../layouts/RoleLayout";
 
 import OperatorDashboard from "../pages/operator/OperatorDashboard";
 import OperatorStudents from "../pages/operator/OperatorStudents";
-import OperatorStudentDetail from "../pages/operator/OperatorStudentDetail";
 
-import AdminStudentDetail from "../pages/AdminStudentDetail";
 import OperatorLedgerSheet from '../pages/operator/OperatorLedgerSheet';
 import AdminApprovals from '../pages/AdminApprovals';
 
@@ -29,9 +28,20 @@ import OperatorEventDetail from '../pages/operator/OperatorEventDetail';
 import AdminEvents from '../pages/AdminEvents';
 import AdminEventReview from '../pages/AdminEventReview';
 
-import ActivityDashboard from "../features/dashboard/ActivityDashboard";
 import FinancialDashboard from "../features/dashboard/FinancialDashboard";
 import StudentDetailWithFees from "../features/students/StudentDetailWithFees";
+import FeeStructureManagement from "../pages/FeeStructureManagement";
+import NewFeeCollection from "../pages/NewFeeCollection";
+
+// /operator/students/:id used to render its own full copy of the student
+// detail page. It's the same page as /students/:id (RoleLayout already
+// picks the right sidebar for the logged-in role), so just forward old
+// links/bookmarks to the one real route instead of keeping two copies.
+function OperatorStudentRedirect() {
+  const { studentId } = useParams();
+  return <Navigate to={`/students/${studentId}`} replace />;
+}
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -81,9 +91,9 @@ export default function AppRoutes() {
         path="/students/:studentId"
         element={
           <ProtectedRoute allowedRole={["ADMIN", "OPERATOR"]}>
-            <AdminLayout>
+            <RoleLayout>
               <StudentDetailWithFees />
-            </AdminLayout>
+            </RoleLayout>
           </ProtectedRoute>
         }
       />
@@ -106,6 +116,28 @@ export default function AppRoutes() {
             <AdminLayout>
               <ExpenseReports />
             </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/fee-structure"
+        element={
+          <ProtectedRoute allowedRole={["ADMIN", "OPERATOR"]}>
+            <RoleLayout>
+              <FeeStructureManagement />
+            </RoleLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/fee-collection"
+        element={
+          <ProtectedRoute allowedRole={["ADMIN", "OPERATOR"]}>
+            <RoleLayout>
+              <NewFeeCollection />
+            </RoleLayout>
           </ProtectedRoute>
         }
       />
@@ -171,9 +203,7 @@ export default function AppRoutes() {
         path="/operator/students/:studentId"
         element={
           <ProtectedRoute allowedRole="OPERATOR">
-            <OperatorLayout>
-              <StudentDetailWithFees />
-            </OperatorLayout>
+            <OperatorStudentRedirect />
           </ProtectedRoute>
         }
       />
@@ -251,7 +281,6 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
 

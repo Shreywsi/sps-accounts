@@ -28,6 +28,10 @@ urlpatterns = [
     ),
     path(
         "api/v1/fees/",
+        include("apps.fees.fee_structure_urls"),
+    ),
+    path(
+        "api/v1/fees/",
         include("apps.fees.urls"),
     ),
     path(

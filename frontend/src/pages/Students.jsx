@@ -14,6 +14,21 @@ export default function Students() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState(null);
 
+  const fetchStudents = () => {
+    getStudents()
+      .then((res) => {
+        console.log("Students API:", res.data);
+        setStudents(res.data);
+      })
+      .catch((err) => {
+        console.log("Students Error:", err.response);
+        console.error(err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
   useEffect(() => {
     fetchStudents();
   }, []);
@@ -34,21 +49,6 @@ export default function Students() {
 
     setFilteredStudents(filtered);
   }, [students, searchTerm]);
-
-  const fetchStudents = () => {
-    getStudents()
-      .then((res) => {
-        console.log("Students API:", res.data);
-        setStudents(res.data);
-      })
-      .catch((err) => {
-        console.log("Students Error:", err.response);
-        console.error(err);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
 
   const handleDelete = async () => {
     if (!studentToDelete) return;

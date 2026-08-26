@@ -67,7 +67,7 @@ export default function OperatorEventDetail() {
         setComments(commentsRes.data.results || commentsRes.data);
         setEditRequests(editRequestsRes.data.results || editRequestsRes.data);
       })
-      .catch(() => {
+      .catch((err) => {
         if (!ignore) setError("Couldn't load this event.");
       })
       .finally(() => {

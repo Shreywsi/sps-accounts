@@ -10,11 +10,14 @@ import {
   MessageSquare,
   ClipboardCheck,
   FolderKanban,
+  Wallet,
 } from "lucide-react";
 
 const menu = [
   { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { name: "Students", path: "/students", icon: Users },
+  { name: "Fee Structure", path: "/fee-structure", icon: Wallet },
+  { name: "Fee Collection", path: "/fee-collection", icon: Receipt },
   { name: "Expense Reports", path: "/expenses/reports", icon: Receipt },
   { name: "Events", path: "/admin/events", icon: FolderKanban },
   { name: "Messages", path: "/messages", icon: MessageSquare },

@@ -7,6 +7,8 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.filters import SearchFilter
+from django_filters.rest_framework import DjangoFilterBackend
 
 from apps.students.models import Student
 from apps.students.permissions import IsAdminRole, IsAdminOrOperator
@@ -47,11 +49,21 @@ class StudentViewSet(viewsets.ModelViewSet):
     serializer_class = StudentSerializer
     permission_classes = [IsAdminOrOperator]
 
+    filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_fields = [
         "school_class",
         "academic_section",
         "is_active",
         "verification_status",
+    ]
+    # Powers ?search= on the fee-collection student lookup and anywhere
+    # else the student list is searched from.
+    search_fields = [
+        "first_name",
+        "last_name",
+        "admission_no",
+        "father_name",
+        "mother_name",
     ]
 
     def get_queryset(self):
@@ -62,6 +74,20 @@ class StudentViewSet(viewsets.ModelViewSet):
             # If you want to restrict to only operator-created students, uncomment below:
             # queryset = queryset.filter(created_by=self.request.user)
             pass
+        return queryset
+
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset)
+
+        # SearchFilter (search_fields above) only covers text columns.
+        # roll_number is an IntegerField, and icontains on an integer
+        # column isn't safe across every DB backend, so widen a
+        # purely-numeric search term to also match an exact roll number.
+        search = self.request.query_params.get("search")
+        if search and search.strip().isdigit():
+            roll_matches = self.get_queryset().filter(roll_number=int(search.strip()))
+            queryset = (queryset | roll_matches).distinct()
+
         return queryset
 
     def create(self, request, *args, **kwargs):

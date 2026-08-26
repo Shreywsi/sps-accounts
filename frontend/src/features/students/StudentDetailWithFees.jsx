@@ -1,29 +1,22 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { 
-  DollarSign, 
-  Calendar, 
-  Clock, 
-  Receipt, 
-  Upload, 
-  AlertCircle,
+import {
   CheckCircle,
-  XCircle,
-  Plus,
   Edit,
-  Trash2,
-  Eye,
   User,
   Phone,
   Mail,
   MapPin,
   Hash,
   Users,
+  ChevronDown,
+  ChevronUp,
   X
 } from "lucide-react";
 import API from "../../api/axios";
 import toast from "react-hot-toast";
 import StudentForm from "../../components/students/StudentForm";
+import FeeCollectionPanel from "../../components/fees/FeeCollectionPanel";
 
 const InfoField = ({ icon: Icon, label, value }) => (
   <div className="p-4 bg-gray-50 rounded-lg">
@@ -37,180 +30,28 @@ const InfoField = ({ icon: Icon, label, value }) => (
   </div>
 );
 
-const money = (value) => Number(value || 0).toFixed(2);
-
 const StudentDetailWithFees = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
   const [student, setStudent] = useState(null);
-  const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showFeeModal, setShowFeeModal] = useState(false);
   const [showEditPersonalModal, setShowEditPersonalModal] = useState(false);
-  const [showFeeOverview, setShowFeeOverview] = useState(true);
-  const [paymentData, setPaymentData] = useState({
-    payment_type: "MONTHLY",
-    amount: "",
-    payment_method: "cash",
-    receipt: null,
-    notes: "",
-  });
-  const [feeData, setFeeData] = useState({
-    annual_fee: "",
-    monthly_fee: "",
-    cab_fee: "",
-    fee_due_day: "10",
-    late_fee_per_day: "10",
-    additional_fees: {},
-  });
+  const [showFees, setShowFees] = useState(true);
 
   useEffect(() => {
     fetchStudent();
-    fetchPayments();
   }, [studentId]);
 
   const fetchStudent = async () => {
     try {
+      setLoading(true);
       const response = await API.get(`/students/${studentId}/`);
       setStudent(response.data);
-      setFeeData({
-        annual_fee: response.data.annual_fee || "",
-        monthly_fee: response.data.monthly_fee || "",
-        cab_fee: response.data.cab_fee || "",
-        fee_due_day: response.data.fee_due_day || "10",
-        late_fee_per_day: response.data.late_fee_per_day || "10",
-        additional_fees: response.data.additional_fees || {},
-      });
     } catch (error) {
       toast.error("Failed to fetch student details");
       console.error("Error fetching student:", error);
-    }
-  };
-
-  const fetchPayments = async () => {
-    try {
-      const response = await API.get(`/fees/simple-payments/?student=${studentId}`);
-      setPayments(response.data);
-    } catch (error) {
-      console.error("Error fetching payments:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handlePaymentSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Validate form data
-    if (!paymentData.amount || parseFloat(paymentData.amount) <= 0) {
-      toast.error("Please enter a valid amount");
-      return;
-    }
-
-    try {
-      const paymentPayload = {
-        student: studentId,
-        payment_type: paymentData.payment_type,
-        amount: paymentData.amount,
-        payment_method: paymentData.payment_method,
-        notes: paymentData.notes,
-      };
-
-      if (paymentData.receipt) {
-        const formData = new FormData();
-        Object.entries(paymentPayload).forEach(([key, value]) => {
-          formData.append(key, value);
-        });
-        formData.append("receipt", paymentData.receipt);
-        await API.post("/fees/simple-payments/", formData);
-      } else {
-        await API.post("/fees/simple-payments/", paymentPayload);
-      }
-      toast.success("Payment recorded successfully");
-      setShowPaymentModal(false);
-      setPaymentData({
-        payment_type: "MONTHLY",
-        amount: "",
-        payment_method: "cash",
-        receipt: null,
-        notes: "",
-      });
-      fetchPayments();
-    } catch (error) {
-      console.error("Error recording payment:", error);
-      
-      // Handle different error formats
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        
-        if (errorData.amount) {
-          toast.error(errorData.amount[0]);
-        } else if (errorData.student) {
-          toast.error(errorData.student[0]);
-        } else if (errorData.payment_type) {
-          toast.error(errorData.payment_type[0]);
-        } else if (errorData.non_field_errors) {
-          toast.error(errorData.non_field_errors[0]);
-        } else if (errorData.detail) {
-          toast.error(errorData.detail);
-        } else {
-          toast.error(JSON.stringify(errorData));
-        }
-      } else {
-        toast.error("Failed to record payment. Please try again.");
-      }
-    }
-  };
-
-  const handleFeeUpdate = async (e) => {
-    e.preventDefault();
-
-    try {
-      await API.patch(`/students/${studentId}/`, feeData);
-      toast.success("Fee structure updated successfully");
-      setShowFeeModal(false);
-      fetchStudent();
-    } catch (error) {
-      toast.error("Failed to update fee structure");
-      console.error("Error updating fees:", error);
-    }
-  };
-
-  const handleDeletePayment = async (paymentId) => {
-    if (!confirm("Are you sure you want to delete this payment?")) return;
-
-    try {
-      await API.delete(`/fees/simple-payments/${paymentId}/`);
-      toast.success("Payment deleted successfully");
-      fetchPayments();
-    } catch (error) {
-      toast.error("Failed to delete payment");
-      console.error("Error deleting payment:", error);
-    }
-  };
-
-  const calculateLateFee = () => {
-    if (!student) return 0;
-    
-    const today = new Date();
-    const dueDay = student.fee_due_day;
-    const currentDay = today.getDate();
-    
-    if (currentDay <= dueDay) return 0;
-    
-    const daysLate = currentDay - dueDay;
-    return daysLate * parseFloat(student.late_fee_per_day);
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "APPROVED":
-        return "bg-green-100 text-green-800";
-      case "REJECTED":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -230,8 +71,6 @@ const StudentDetailWithFees = () => {
     );
   }
 
-  const lateFee = calculateLateFee();
-
   return (
     <div className="min-h-screen bg-gray-50 space-y-6">
       {/* Student Header */}
@@ -239,8 +78,8 @@ const StudentDetailWithFees = () => {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
             {student.photo ? (
-              <img 
-                src={student.photo} 
+              <img
+                src={student.photo}
                 alt={student.first_name}
                 className="w-28 h-28 rounded-full object-cover"
               />
@@ -265,15 +104,6 @@ const StudentDetailWithFees = () => {
                     {student.section_name}
                   </span>
                 )}
-                <span className={`px-2 py-1 rounded text-sm ${
-                  student.fee_status === 'PAID' ? 'bg-green-100 text-green-800' :
-                  student.fee_status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {student.fee_status === 'PAID' ? 'Fees Paid' :
-                   student.fee_status === 'PARTIAL' ? 'Partial Payment' :
-                   'Fees Due'}
-                </span>
               </div>
             </div>
           </div>
@@ -284,107 +114,6 @@ const StudentDetailWithFees = () => {
             Back
           </button>
         </div>
-      </div>
-
-      {/* Fee Overview Card */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Fee Overview</h2>
-          <button
-            onClick={() => setShowFeeOverview(!showFeeOverview)}
-            className="text-blue-600 hover:text-blue-800 text-sm"
-          >
-            {showFeeOverview ? 'Hide' : 'Show'}
-          </button>
-        </div>
-        
-        {showFeeOverview && (
-          <div className="space-y-4">
-            {/* Annual Fee Status */}
-            <div className={`p-4 rounded-lg ${student.annual_fee_paid ? 'bg-green-50' : 'bg-yellow-50'}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Annual Fee</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    ₹{money(student.annual_fee)}
-                  </p>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  student.annual_fee_paid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {student.annual_fee_paid ? '✓ Paid' : 'Pending'}
-                </span>
-              </div>
-            </div>
-
-            {/* Monthly Recurring Fees */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-gray-600">Monthly Fee Due</p>
-                <p className="text-2xl font-bold text-blue-900 mt-1">
-                  ₹{money(student.total_fee_due)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">per month</p>
-              </div>
-              <div className="p-4 bg-green-50 rounded-lg">
-                <p className="text-sm text-gray-600">Monthly Paid</p>
-                <p className="text-2xl font-bold text-green-900 mt-1">
-                  ₹{money(student.total_fee_paid)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">current month</p>
-              </div>
-              <div className={`p-4 rounded-lg ${
-                Number(student.fee_balance || 0) > 0 ? 'bg-red-50' : 'bg-green-50'
-              }`}>
-                <p className="text-sm text-gray-600">Balance Due</p>
-                <p className={`text-2xl font-bold mt-1 ${
-                  Number(student.fee_balance || 0) > 0 ? 'text-red-900' : 'text-green-900'
-                }`}>
-                  ₹{money(student.fee_balance)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">this month</p>
-              </div>
-            </div>
-
-            {/* Late Fee Information */}
-            {student.late_fee_due > 0 && (
-              <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-orange-800 font-medium">Late Fee Applied</p>
-                    <p className="text-lg font-bold text-orange-900 mt-1">
-                      ₹{money(student.late_fee_due)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-orange-700">
-                      Due by: {student.fee_due_day}th of each month
-                    </p>
-                    <p className="text-xs text-orange-600">
-                      ₹{money(student.late_fee_per_day)}/day after due date
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        
-        {/* Payment Progress Bar */}
-        {Number(student.total_fee_due || 0) > 0 && (
-          <div className="mt-4">
-            <div className="flex justify-between text-sm text-gray-600 mb-1">
-              <span>Payment Progress</span>
-              <span>{Number(student.payment_progress || 0).toFixed(1)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all"
-                style={{ width: `${student.payment_progress || 0}%` }}
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Personal Information */}
@@ -406,7 +135,7 @@ const StudentDetailWithFees = () => {
           <InfoField icon={Hash} label="Roll Number" value={student.roll_number} />
           <InfoField icon={Users} label="Class & Section" value={[student.school_class_name, student.section_name].filter(Boolean).join(" - ")} />
           <InfoField icon={User} label="Gender" value={student.gender ? student.gender.charAt(0) + student.gender.slice(1).toLowerCase() : ""} />
-          <InfoField icon={Calendar} label="Age" value={student.age} />
+          <InfoField icon={User} label="Age" value={student.age} />
           <InfoField icon={User} label="Father's Name" value={student.father_name} />
           <InfoField icon={User} label="Mother's Name" value={student.mother_name} />
           <InfoField icon={Phone} label="Phone" value={student.phone} />
@@ -444,193 +173,26 @@ const StudentDetailWithFees = () => {
         )}
       </div>
 
-      {/* Fee Information */}
+      {/* Fees - embedded directly here (not a separate page) so it's
+          always right under the student it belongs to. It reads
+          whatever fee structure is currently defined for this
+          student's class, so editing the fee structure elsewhere
+          shows up here automatically - same panel used on the
+          standalone Fee Collection page, just embedded instead of
+          navigated to. */}
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Fee Structure</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-900">Fees</h2>
           <button
-            onClick={() => setShowFeeModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            onClick={() => setShowFees(!showFees)}
+            className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
           >
-            <Edit className="w-4 h-4" />
-            Edit Fees
+            {showFees ? "Hide" : "Show"}
+            {showFees ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-2 text-gray-600 mb-1">
-              <DollarSign className="w-4 h-4" />
-              <span className="text-sm">Annual Fee</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">
-              ₹{student.annual_fee || 0}
-            </p>
-          </div>
-
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-2 text-gray-600 mb-1">
-              <Calendar className="w-4 h-4" />
-              <span className="text-sm">Monthly Fee</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">
-              ₹{student.monthly_fee || 0}
-            </p>
-          </div>
-
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-2 text-gray-600 mb-1">
-              <DollarSign className="w-4 h-4" />
-              <span className="text-sm">Cab Fee</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">
-              ₹{student.cab_fee || 0}
-            </p>
-          </div>
-
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-2 text-gray-600 mb-1">
-              <Clock className="w-4 h-4" />
-              <span className="text-sm">Due Date</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">
-              {student.fee_due_day || 10}th of every month
-            </p>
-          </div>
-
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-2 text-gray-600 mb-1">
-              <AlertCircle className="w-4 h-4" />
-              <span className="text-sm">Late Fee/Day</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">
-              ₹{student.late_fee_per_day || 10}
-            </p>
-          </div>
-
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-2 text-gray-600 mb-1">
-              <DollarSign className="w-4 h-4" />
-              <span className="text-sm">Total Monthly</span>
-            </div>
-            <p className="text-2xl font-bold text-blue-600">
-              ₹{student.total_monthly_fee || 0}
-            </p>
-          </div>
-        </div>
-
-        {/* Late Fee Warning */}
-        {lateFee > 0 && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-center gap-2 text-red-800">
-              <AlertCircle className="w-5 h-5" />
-              <span className="font-medium">Late Fee Alert</span>
-            </div>
-            <p className="text-red-700 mt-1">
-              Current late fee: ₹{lateFee.toFixed(2)}
-            </p>
-          </div>
-        )}
-
-        {/* Additional Fees */}
-        {student.additional_fees && Object.keys(student.additional_fees).length > 0 && (
-          <div className="mt-4">
-            <h3 className="font-semibold text-gray-700 mb-2">Additional Fees</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {Object.entries(student.additional_fees).map(([name, amount]) => (
-                <div key={name} className="p-2 bg-gray-50 rounded text-sm">
-                  <span className="text-gray-600">{name.replace(/_/g, ' ')}:</span>
-                  <span className="font-medium ml-2">₹{amount}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Payment Collection */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Payment Collection</h2>
-          <button
-            onClick={() => setShowPaymentModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            <Plus className="w-4 h-4" />
-            Record Payment
-          </button>
-        </div>
-
-        {payments.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Receipt className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <p>No payments recorded yet</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Date</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Type</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Amount</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Method</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Receipt</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payments.map((payment) => (
-                  <tr key={payment.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4 text-gray-900">
-                      {new Date(payment.payment_date).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4 text-gray-700">
-                      {payment.payment_type.replace(/_/g, ' ')}
-                    </td>
-                    <td className="py-3 px-4 font-medium text-gray-900">
-                      ₹{payment.amount}
-                    </td>
-                    <td className="py-3 px-4 text-gray-700">
-                      {payment.payment_method}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}>
-                        {payment.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      {payment.receipt ? (
-                        <a 
-                          href={payment.receipt} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
-                        >
-                          View
-                        </a>
-                      ) : (
-                        <span className="text-gray-400">No receipt</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleDeletePayment(payment.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                          title="Delete Payment"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {showFees && <FeeCollectionPanel student={student} />}
       </div>
 
       {/* Edit Personal Information Modal */}
@@ -657,198 +219,6 @@ const StudentDetailWithFees = () => {
               }}
               onCancel={() => setShowEditPersonalModal(false)}
             />
-          </div>
-        </div>
-      )}
-
-      {/* Payment Modal */}
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Record Payment
-            </h3>
-            <form onSubmit={handlePaymentSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Type
-                </label>
-                <select
-                  value={paymentData.payment_type}
-                  onChange={(e) => setPaymentData({...paymentData, payment_type: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="MONTHLY">Monthly Fee</option>
-                  <option value="ANNUAL">Annual Fee</option>
-                  <option value="CAB">Cab Fee</option>
-                  <option value="ADDITIONAL">Additional Fee</option>
-                  <option value="OTHER">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Amount
-                </label>
-                <input
-                  type="number"
-                  value={paymentData.amount}
-                  onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Method
-                </label>
-                <select
-                  value={paymentData.payment_method}
-                  onChange={(e) => setPaymentData({...paymentData, payment_method: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="cash">Cash</option>
-                  <option value="upi">UPI</option>
-                  <option value="card">Card</option>
-                  <option value="bank">Bank Transfer</option>
-                  <option value="cheque">Cheque</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Receipt (Optional)
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    onChange={(e) => setPaymentData({...paymentData, receipt: e.target.files[0]})}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
-                    accept="image/*"
-                  />
-                  <Upload className="w-5 h-5 text-gray-400" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes (Optional)
-                </label>
-                <textarea
-                  value={paymentData.notes}
-                  onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  rows="2"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowPaymentModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
-                >
-                  Record Payment
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Fee Edit Modal */}
-      {showFeeModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Edit Fee Structure
-            </h3>
-            <form onSubmit={handleFeeUpdate} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Annual Fee
-                </label>
-                <input
-                  type="number"
-                  value={feeData.annual_fee}
-                  onChange={(e) => setFeeData({...feeData, annual_fee: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Monthly Fee
-                </label>
-                <input
-                  type="number"
-                  value={feeData.monthly_fee}
-                  onChange={(e) => setFeeData({...feeData, monthly_fee: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cab Fee
-                </label>
-                <input
-                  type="number"
-                  value={feeData.cab_fee}
-                  onChange={(e) => setFeeData({...feeData, cab_fee: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fee Due Day (1-31)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={feeData.fee_due_day}
-                  onChange={(e) => setFeeData({...feeData, fee_due_day: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Late Fee Per Day
-                </label>
-                <input
-                  type="number"
-                  value={feeData.late_fee_per_day}
-                  onChange={(e) => setFeeData({...feeData, late_fee_per_day: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowFeeModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-                >
-                  Update Fees
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

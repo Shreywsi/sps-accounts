@@ -4,3 +4,11 @@ from .fee_structure_item import FeeStructureItem
 from .student_fee import StudentFee
 from .payment import Payment
 from .simple_payment import SimplePayment
+from .monthly_fee_record import MonthlyFeeRecord
+from .payment_adjustment import PaymentAdjustment
+from .fee_session import FeeSession
+from .fee_category_group import FeeCategoryGroup
+from .fee_head import FeeHead
+from .uniform_fee_item import UniformFeeItem
+from .class_fee_mapping import ClassFeeMapping
+from .student_fee_assignment import StudentFeeAssignment

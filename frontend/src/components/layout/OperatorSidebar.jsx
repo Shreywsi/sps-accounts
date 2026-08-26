@@ -13,8 +13,10 @@ import { useAuth } from "../../context/AuthContext";
 
 const menu = [
   { name: "Dashboard", path: "/operator/dashboard", icon: LayoutDashboard },
-  { name: "Financial", path: "/financial-dashboard", icon: Wallet },
+  { name: "Financial", path: "/operator/financial-dashboard", icon: Wallet },
   { name: "Students", path: "/operator/students", icon: Users },
+  { name: "Fee Structure", path: "/fee-structure", icon: Wallet },
+  { name: "Fee Collection", path: "/fee-collection", icon: Receipt },
   { name: "Expenses", path: "/operator/ledger", icon: Receipt },
   { name: "Events", path: "/operator/events", icon: FolderKanban },
   { name: "Messages", path: "/operator/messages", icon: MessageSquare },
