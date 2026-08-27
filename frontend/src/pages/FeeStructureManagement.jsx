@@ -31,8 +31,9 @@ export default function FeeStructureManagement() {
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN";
   const isOperator = user?.role === "OPERATOR";
-  // Fee heads can be created/edited by admins and operators (backend: IsAdminOrOperator);
-  // only fee groups, uniform items, class mappings, and fee-head deletion stay admin-only.
+  // Fee heads and fee groups can be created by admins and operators (backend:
+  // IsAdminOrOperator); editing/deleting a group, uniform items, class
+  // mappings, and fee-head deletion stay admin-only.
   const canManageHeads = isAdmin || isOperator;
 
   const [activeTab, setActiveTab] = useState("Day Scholar");
@@ -565,7 +566,7 @@ function FeeStructureTab({
 
   return (
     <div className="space-y-4">
-      {isAdmin && (
+      {canManageHeads && (
         <div className="flex justify-end">
           <button
             onClick={onAddGroup}

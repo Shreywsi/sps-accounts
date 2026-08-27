@@ -10,6 +10,17 @@ import {
 } from "../../api/feeStructure";
 import { recordMonthlyPayment } from "../../api/fees";
 
+// Student.gender is stored as MALE / FEMALE / OTHER, but UniformFeeItem.gender
+// is stored as boys / girls. This maps one to the other so the uniform list
+// always matches the selected student instead of silently returning nothing.
+const mapStudentGenderToUniform = (gender) => {
+  if (!gender) return null;
+  const normalized = gender.toUpperCase();
+  if (normalized === "MALE") return "boys";
+  if (normalized === "FEMALE") return "girls";
+  return null; // "OTHER" or unset - no automatic match, fall back to manual choice
+};
+
 /**
  * The single, reusable "collect fees for this student" UI.
  *
@@ -65,6 +76,24 @@ export default function FeeCollectionPanel({ student }) {
       const session = sessionRes.data;
       setActiveSession(session);
 
+      // Uniform pricing is independent of the class fee structure, so it's
+      // loaded up front and never blocked by a missing class mapping / fee
+      // group below - a student with no fee structure configured yet should
+      // still see their uniform prices.
+      const gender = mapStudentGenderToUniform(targetStudent.gender) || uniformGender;
+      setUniformGender(gender);
+
+      try {
+        const uniformRes = await getUniformItems({
+          session: session?.id,
+          gender,
+        });
+        setUniformItems(uniformRes.data);
+      } catch (error) {
+        console.error("Failed to load uniform items", error);
+      }
+
+      const boardingType = targetStudent.boarding_type || "day_scholar";
       const className = targetStudent.school_class_name || targetStudent.school_class;
       const mappingRes = await getClassMappingByClass(className, session?.id);
 
@@ -74,8 +103,6 @@ export default function FeeCollectionPanel({ student }) {
       }
 
       const mapping = mappingRes.data;
-
-      const boardingType = targetStudent.boarding_type || "day_scholar";
       const groupId = boardingType === "hostel" ? mapping.hostel_group : mapping.day_scholar_group;
 
       if (!groupId) {
@@ -90,15 +117,6 @@ export default function FeeCollectionPanel({ student }) {
         is_active: true,
       }));
       setFeeHeads(heads);
-
-      const gender = targetStudent.gender ? targetStudent.gender.toLowerCase() : uniformGender;
-      setUniformGender(gender);
-
-      const uniformRes = await getUniformItems({
-        session: session?.id,
-        gender,
-      });
-      setUniformItems(uniformRes.data);
 
       try {
         const assignmentRes = await createFeeAssignmentFromTemplate({
