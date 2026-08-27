@@ -374,6 +374,10 @@ export default function FeeStructureManagement() {
             });
             setShowGroupModal(true);
           }}
+                    onEditGroup={(group) => {
+            setEditingGroup(group);
+            setShowGroupModal(true);
+          }}
           onDeleteGroup={handleDeleteGroup}
           onAddHead={(groupId) => {
             setEditingFeeHead({
@@ -412,6 +416,10 @@ export default function FeeStructureManagement() {
               applicable_class_range: "",
               display_order: 0,
             });
+            setShowGroupModal(true);
+          }}
+                    onEditGroup={(group) => {
+            setEditingGroup(group);
             setShowGroupModal(true);
           }}
           onDeleteGroup={handleDeleteGroup}
@@ -546,6 +554,7 @@ function FeeStructureTab({
   isAdmin,
   canManageHeads = isAdmin,
   onAddGroup,
+  onEditGroup,
   onDeleteGroup,
   onAddHead,
   onEditHead,
@@ -590,7 +599,7 @@ function FeeStructureTab({
                 onClick={() => toggleGroup(group.id)}
               >
                 {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                <div>
+                              <div>
                   <h3 className="font-semibold">{group.name}</h3>
                   <p className="text-sm text-gray-500">{group.applicable_class_range}</p>
                 </div>
@@ -599,6 +608,18 @@ function FeeStructureTab({
                 <p className="text-sm font-medium">
                   {groupHeads.length} fee heads
                 </p>
+                {canManageHeads && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditGroup(group);
+                    }}
+                    className="text-blue-600 hover:text-blue-800"
+                    title="Edit group name / class range"
+                  >
+                    <Edit size={16} />
+                  </button>
+                )}
                 {isAdmin && (
                   <button
                     onClick={(e) => {

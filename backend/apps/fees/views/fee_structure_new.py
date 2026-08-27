@@ -80,9 +80,12 @@ class FeeCategoryGroupViewSet(viewsets.ModelViewSet):
     filterset_fields = ["session", "boarding_type"]
 
     def get_permissions(self):
-        # Operators can create fee groups (mirrors fee-head creation below);
-        # editing/deleting an existing group stays admin-only.
-        if self.action in ["update", "partial_update", "destroy"]:
+        # Operators can create AND edit fee groups (name / class range /
+        # display order) so both admin and operator panels can rename
+        # things like "I-V" or "VI-VII" without an admin having to step in.
+        # Deleting a group still stays admin-only since it cascades to all
+        # of that group's fee heads.
+        if self.action == "destroy":
             return [IsAuthenticated(), IsAdminRole()]
         return [IsAuthenticated(), IsAdminOrOperator()]
 
@@ -95,6 +98,20 @@ class FeeCategoryGroupViewSet(viewsets.ModelViewSet):
                 title="New fee group created",
                 message=(
                     f"{self.request.user.username} created fee group "
+                    f"'{group.name}' ({group.boarding_type})."
+                ),
+                link="/fee-structure",
+            )
+
+    def perform_update(self, serializer):
+        group = serializer.save()
+        if self.request.user.role == "OPERATOR":
+            notify_admins(
+                actor=self.request.user,
+                category="FEES",
+                title="Fee group updated",
+                message=(
+                    f"{self.request.user.username} updated fee group "
                     f"'{group.name}' ({group.boarding_type})."
                 ),
                 link="/fee-structure",

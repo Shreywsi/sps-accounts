@@ -396,41 +396,43 @@ export default function NewFeeCollection() {
               </button>
             </div>
 
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 w-8"></th>
-                  <th className="text-left py-2">Fee Head</th>
-                  <th className="text-left py-2">Frequency</th>
-                  <th className="text-right py-2">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {feeHeads.map((head) => (
-                  <tr key={head.id} className="border-b">
-                    <td className="py-2">
-                      <input
-                        type="checkbox"
-                        checked={head.is_active}
-                        onChange={() => handleToggleFeeHead(head.id)}
-                      />
-                    </td>
-                    <td className="py-2">{head.label}</td>
-                    <td className="py-2 capitalize">{head.frequency}</td>
-                    <td className="py-2 text-right">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={head.custom_amount}
-                        onChange={(e) => handleFeeAmountChange(head.id, e.target.value)}
-                        className="w-24 text-right border rounded px-2 py-1"
-                        disabled={!head.is_active}
-                      />
-                    </td>
+            {showFeeDetails && (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 w-8"></th>
+                    <th className="text-left py-2">Fee Head</th>
+                    <th className="text-left py-2">Frequency</th>
+                    <th className="text-right py-2">Amount</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {feeHeads.map((head) => (
+                    <tr key={head.id} className="border-b">
+                      <td className="py-2">
+                        <input
+                          type="checkbox"
+                          checked={head.is_active}
+                          onChange={() => handleToggleFeeHead(head.id)}
+                        />
+                      </td>
+                      <td className="py-2">{head.label}</td>
+                      <td className="py-2 capitalize">{head.frequency}</td>
+                      <td className="py-2 text-right">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={head.custom_amount}
+                          onChange={(e) => handleFeeAmountChange(head.id, e.target.value)}
+                          className="w-24 text-right border rounded px-2 py-1"
+                          disabled={!head.is_active}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
 
             {/* Fee Summary */}
             <div className="mt-4 space-y-2 text-sm">
