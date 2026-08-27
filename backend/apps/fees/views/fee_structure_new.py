@@ -119,14 +119,16 @@ class FeeHeadViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == "destroy":
             return [IsAuthenticated(), IsAdminRole()]
-        if self.action in ["create", "update", "partial_update"]:
-            # Check if the head is editable by operator
-            if self.action != "create" and self.request.user.role == "OPERATOR":
-                head = self.get_object()
-                if head.editable_by != "admin_operator":
-                    from rest_framework.exceptions import PermissionDenied
-                    raise PermissionDenied("This fee head can only be edited by admins")
-            return [IsAuthenticated(), IsAdminOrOperator()]
+        if self.action in ["update", "partial_update"] and self.request.user.role == "OPERATOR":
+            # Fetch directly from the manager instead of self.get_object():
+            # get_object() calls check_object_permissions(), which calls
+            # get_permissions() again, which would land back here and
+            # recurse infinitely (-> RecursionError -> 500 on every PATCH
+            # from an operator). A plain queryset lookup avoids that loop.
+            head = FeeHead.objects.filter(pk=self.kwargs.get("pk")).first()
+            if head and head.editable_by != "admin_operator":
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("This fee head can only be edited by admins")
         return [IsAuthenticated(), IsAdminOrOperator()]
 
     def perform_create(self, serializer):
