@@ -15,7 +15,8 @@ import { recordMonthlyPayment } from "../api/fees";
 
 // Student.gender is stored as MALE / FEMALE / OTHER, but UniformFeeItem.gender
 // is stored as boys / girls. This maps one to the other so the uniform list
-// always matches the selected student instead of silently returning nothing.
+// always matches the selected student instead of silently returning nothing
+// (or, worse, the wrong gender's price list).
 const mapStudentGenderToUniform = (gender) => {
   if (!gender) return null;
   const normalized = gender.toUpperCase();
@@ -75,26 +76,6 @@ export default function NewFeeCollection() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preloadedStudentId]);
 
-  // Keep the uniform list in sync if staff manually overrides the gender
-  // toggle for a student (e.g. gender not set on the record).
-  useEffect(() => {
-    if (!selectedStudent) return;
-    (async () => {
-      try {
-        const uniformRes = await getUniformItems({
-          session: activeSession?.id,
-          gender: uniformGender,
-          is_active: true,
-        });
-        setUniformItems(uniformRes.data);
-        setSelectedUniformItems({});
-      } catch (error) {
-        console.error("Failed to reload uniform items", error);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uniformGender]);
-
   const loadActiveSession = async () => {
     try {
       const res = await getActiveFeeSession();
@@ -130,6 +111,26 @@ export default function NewFeeCollection() {
     try {
       setLoading(true);
 
+      // Uniform pricing is independent of the class fee structure, so it's
+      // loaded up front (using the student's actual gender) and never
+      // blocked by a missing class mapping / fee group below - a student
+      // with no fee structure configured yet should still see their
+      // uniform prices, and should see the correct gender's list from the
+      // very first render instead of a stale "boys" default.
+      const gender = mapStudentGenderToUniform(student.gender) || uniformGender;
+      setUniformGender(gender);
+      setSelectedUniformItems({});
+
+      try {
+        const uniformRes = await getUniformItems({
+          session: session?.id,
+          gender,
+        });
+        setUniformItems(uniformRes.data);
+      } catch (error) {
+        console.error("Failed to load uniform items", error);
+      }
+
       // Get class mapping
       const className = student.school_class_name || student.school_class;
       const mappingRes = await getClassMappingByClass(className, session?.id);
@@ -161,21 +162,6 @@ export default function NewFeeCollection() {
       }));
       setFeeHeads(heads);
 
-      // Uniform items must match THIS student's gender, not whatever gender
-      // happened to be selected for the previous student. Derive it first
-      // and use that value directly in the fetch instead of the (possibly
-      // stale) uniformGender state.
-      const derivedGender = mapStudentGenderToUniform(student.gender) || uniformGender;
-      setUniformGender(derivedGender);
-      setSelectedUniformItems({}); // clear previous student's uniform selections
-
-      const uniformRes = await getUniformItems({
-        session: session?.id,
-        gender: derivedGender,
-        is_active: true,
-      });
-      setUniformItems(uniformRes.data);
-
       // Create or get fee assignment
       try {
         const assignmentRes = await createFeeAssignmentFromTemplate({
@@ -196,6 +182,20 @@ export default function NewFeeCollection() {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUniformGenderChange = async (gender) => {
+    setUniformGender(gender);
+    try {
+      const uniformRes = await getUniformItems({
+        session: activeSession?.id,
+        gender,
+      });
+      setUniformItems(uniformRes.data);
+      setSelectedUniformItems({});
+    } catch (error) {
+      console.error("Failed to load uniform items", error);
     }
   };
 
@@ -453,28 +453,35 @@ export default function NewFeeCollection() {
           <div className="bg-white border rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Uniform</h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setUniformGender("boys")}
-                  className={`px-3 py-1 rounded text-sm ${
-                    uniformGender === "boys"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100"
-                  }`}
-                >
-                  Boys
-                </button>
-                <button
-                  onClick={() => setUniformGender("girls")}
-                  className={`px-3 py-1 rounded text-sm ${
-                    uniformGender === "girls"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100"
-                  }`}
-                >
-                  Girls
-                </button>
-              </div>
+              {mapStudentGenderToUniform(selectedStudent?.gender) ? (
+                <span className="px-3 py-1 rounded text-sm bg-blue-600 text-white">
+                  {uniformGender === "boys" ? "Boys" : "Girls"}
+                  <span className="ml-1 text-blue-100 text-xs">(auto-detected)</span>
+                </span>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleUniformGenderChange("boys")}
+                    className={`px-3 py-1 rounded text-sm ${
+                      uniformGender === "boys"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100"
+                    }`}
+                  >
+                    Boys
+                  </button>
+                  <button
+                    onClick={() => handleUniformGenderChange("girls")}
+                    className={`px-3 py-1 rounded text-sm ${
+                      uniformGender === "girls"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100"
+                    }`}
+                  >
+                    Girls
+                  </button>
+                </div>
+              )}
             </div>
 
             <table className="w-full text-sm">

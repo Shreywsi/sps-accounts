@@ -45,6 +45,12 @@ export default function FeeCollectionPanel({ student }) {
   const [uniformGender, setUniformGender] = useState("boys");
   const [selectedUniformItems, setSelectedUniformItems] = useState({});
 
+  // When the student's gender is known (MALE/FEMALE), the uniform list is
+  // locked to that gender - the operator shouldn't be able to accidentally
+  // pull up the other gender's price list. The toggle only stays editable
+  // when gender is unset/"OTHER", so someone can still pick manually.
+  const detectedUniformGender = mapStudentGenderToUniform(student?.gender);
+
   // Payment
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -341,24 +347,31 @@ export default function FeeCollectionPanel({ student }) {
           <div className="bg-white border rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">Uniform</h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleUniformGenderChange("boys")}
-                    className={`px-3 py-1 rounded text-sm ${
-                      uniformGender === "boys" ? "bg-blue-600 text-white" : "bg-gray-100"
-                    }`}
-                  >
-                    Boys
-                  </button>
-                  <button
-                    onClick={() => handleUniformGenderChange("girls")}
-                    className={`px-3 py-1 rounded text-sm ${
-                      uniformGender === "girls" ? "bg-blue-600 text-white" : "bg-gray-100"
-                    }`}
-                  >
-                    Girls
-                  </button>
-                </div>
+                {detectedUniformGender ? (
+                  <span className="px-3 py-1 rounded text-sm bg-blue-600 text-white">
+                    {detectedUniformGender === "boys" ? "Boys" : "Girls"}
+                    <span className="ml-1 text-blue-100 text-xs">(auto-detected)</span>
+                  </span>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleUniformGenderChange("boys")}
+                      className={`px-3 py-1 rounded text-sm ${
+                        uniformGender === "boys" ? "bg-blue-600 text-white" : "bg-gray-100"
+                      }`}
+                    >
+                      Boys
+                    </button>
+                    <button
+                      onClick={() => handleUniformGenderChange("girls")}
+                      className={`px-3 py-1 rounded text-sm ${
+                        uniformGender === "girls" ? "bg-blue-600 text-white" : "bg-gray-100"
+                      }`}
+                    >
+                      Girls
+                    </button>
+                  </div>
+                )}
               </div>
 
               <table className="w-full text-sm">

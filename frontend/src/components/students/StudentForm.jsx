@@ -13,6 +13,7 @@ const emptyForm = {
   last_name: "",
   age: "",
   gender: "",
+  boarding_type: "day_scholar",
   school_class: "",
   academic_section: "",
   roll_number: "",
@@ -72,6 +73,7 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
         last_name: student.last_name || "",
         age: student.age || "",
         gender: student.gender || "",
+        boarding_type: student.boarding_type || "day_scholar",
         school_class: student.school_class || "",
         academic_section: student.academic_section || "",
         roll_number: student.roll_number || "",
@@ -411,6 +413,21 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
                 <option value="MALE">Male</option>
                 <option value="FEMALE">Female</option>
                 <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Boarding Type
+              </label>
+              <select
+                name="boarding_type"
+                value={form.boarding_type}
+                onChange={handleChange}
+                className="w-full border rounded-md px-3 py-2 text-sm"
+              >
+                <option value="day_scholar">Day Scholar</option>
+                <option value="hostel">Hostel</option>
               </select>
             </div>
 

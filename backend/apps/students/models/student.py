@@ -68,6 +68,18 @@ class Student(models.Model):
 
     roll_number = models.PositiveIntegerField()
 
+    BOARDING_TYPE_CHOICES = [
+        ("day_scholar", "Day Scholar"),
+        ("hostel", "Hostel"),
+    ]
+
+    boarding_type = models.CharField(
+        max_length=20,
+        choices=BOARDING_TYPE_CHOICES,
+        default="day_scholar",
+        help_text="Whether the student is a day scholar or a hosteler - drives which fee group (day scholar vs hostel) is used for this student.",
+    )
+
     father_name = models.CharField(
         max_length=100,
     )

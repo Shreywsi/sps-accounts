@@ -136,6 +136,11 @@ const StudentDetailWithFees = () => {
           <InfoField icon={Users} label="Class & Section" value={[student.school_class_name, student.section_name].filter(Boolean).join(" - ")} />
           <InfoField icon={User} label="Gender" value={student.gender ? student.gender.charAt(0) + student.gender.slice(1).toLowerCase() : ""} />
           <InfoField icon={User} label="Age" value={student.age} />
+          <InfoField
+            icon={Users}
+            label="Boarding Type"
+            value={student.boarding_type === "hostel" ? "Hostel" : "Day Scholar"}
+          />
           <InfoField icon={User} label="Father's Name" value={student.father_name} />
           <InfoField icon={User} label="Mother's Name" value={student.mother_name} />
           <InfoField icon={Phone} label="Phone" value={student.phone} />
