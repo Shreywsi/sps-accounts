@@ -49,6 +49,11 @@ class StudentSerializer(serializers.ModelSerializer):
             "section_name",
             "total_monthly_fee",
             "total_annual_fee",
+            # Fee due day / late fee per day are now school-wide policy,
+            # set once in Fee Settings (next to Class Mappings) rather
+            # than edited per student - see apps.fees.models.FeeSettings.
+            "fee_due_day",
+            "late_fee_per_day",
         ]
 
     def get_full_name(self, obj):

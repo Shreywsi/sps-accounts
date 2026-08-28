@@ -121,19 +121,19 @@ const UnpaidStudents = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        ₹{student.total_fee_due?.toFixed(2) || 0}
+                        ₹{Number(student.total_fee_due || 0).toFixed(2)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-green-600 font-medium">
-                        ₹{student.total_fee_paid?.toFixed(2) || 0}
+                        ₹{Number(student.total_fee_paid || 0).toFixed(2)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={`text-sm font-medium ${
-                        student.fee_balance > 0 ? 'text-red-600' : 'text-green-600'
+                        Number(student.fee_balance) > 0 ? 'text-red-600' : 'text-green-600'
                       }`}>
-                        ₹{student.fee_balance?.toFixed(2) || 0}
+                        ₹{Number(student.fee_balance || 0).toFixed(2)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -151,11 +151,11 @@ const UnpaidStudents = () => {
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
                           className="bg-blue-600 h-2 rounded-full"
-                          style={{ width: `${student.payment_progress || 0}%` }}
+                          style={{ width: `${Number(student.payment_progress || 0)}%` }}
                         />
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
-                        {student.payment_progress?.toFixed(1) || 0}%
+                        {Number(student.payment_progress || 0).toFixed(1)}%
                       </div>
                     </td>
                   </tr>

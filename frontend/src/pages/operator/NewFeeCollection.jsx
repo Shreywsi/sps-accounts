@@ -48,6 +48,9 @@ export default function NewFeeCollection() {
   const [transactionRef, setTransactionRef] = useState("");
   const [installments, setInstallments] = useState(1);
   const [notes, setNotes] = useState("");
+  const [paymentDate, setPaymentDate] = useState(
+    () => new Date().toISOString().slice(0, 10)
+  );
 
   // UI state
   const [showFeeDetails, setShowFeeDetails] = useState(false);
@@ -282,13 +285,17 @@ export default function NewFeeCollection() {
     try {
       setLoading(true);
 
-      // Create payment
+      // Create payment. payment_date is what the backend measures
+      // lateness against (see SimplePayment.days_late) - it defaults to
+      // today server-side if omitted, so always send it explicitly to
+      // support backdated/late entries.
       await recordMonthlyPayment({
         student: selectedStudent.id,
         payment_type: "MONTHLY",
         amount: paymentAmount,
         payment_method: paymentMethod,
         transaction_reference: transactionRef,
+        payment_date: paymentDate,
         notes: notes,
       });
 
@@ -306,6 +313,54 @@ export default function NewFeeCollection() {
     const total = calculateTotal();
     const perInstallment = total / installments;
     return perInstallment.toFixed(2);
+  };
+
+  // Mirrors the backend fallback calculation in
+  // SimplePayment._due_date_for_payment / days_late (see
+  // backend/apps/fees/models/simple_payment.py) so what the operator sees
+  // here matches what actually gets snapshotted onto the payment when it's
+  // saved. Due day is taken from the student's fee settings (Fee Due Day),
+  // clamped to the selected payment date's month/year.
+  const getLateFeeInfo = () => {
+    if (!selectedStudent || !paymentDate) {
+      return { daysLate: 0, lateFee: 0, dueDay: null, rate: 0 };
+    }
+
+    const dueDay = parseInt(selectedStudent.fee_due_day, 10);
+    const rate = parseFloat(selectedStudent.late_fee_per_day) || 0;
+
+    if (!dueDay || !rate) {
+      return { daysLate: 0, lateFee: 0, dueDay: dueDay || null, rate };
+    }
+
+    const paid = new Date(paymentDate + "T00:00:00");
+    const lastDayOfMonth = new Date(
+      paid.getFullYear(),
+      paid.getMonth() + 1,
+      0
+    ).getDate();
+    const clampedDueDay = Math.min(dueDay, lastDayOfMonth);
+    const dueDate = new Date(paid.getFullYear(), paid.getMonth(), clampedDueDay);
+
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const daysLate = Math.max(
+      Math.round((paid - dueDate) / msPerDay),
+      0
+    );
+
+    return {
+      daysLate,
+      lateFee: daysLate * rate,
+      dueDay,
+      rate,
+    };
+  };
+
+  const lateFeeInfo = getLateFeeInfo();
+
+  const handleAddLateFeeToAmount = () => {
+    const current = parseFloat(paymentAmount) || 0;
+    setPaymentAmount((current + lateFeeInfo.lateFee).toFixed(2));
   };
 
   return (
@@ -567,6 +622,45 @@ export default function NewFeeCollection() {
               </div>
 
               <div>
+                <label className="block text-sm font-medium mb-1">Payment Date</label>
+                <input
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  className="w-full border rounded-md px-3 py-2"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Fee due day for {selectedStudent.first_name}:{" "}
+                  {selectedStudent.fee_due_day || "10"} of every month · Late
+                  fee: ₹{selectedStudent.late_fee_per_day ?? "10"}/day
+                </p>
+              </div>
+
+              {lateFeeInfo.daysLate > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-4 flex items-center justify-between">
+                  <div className="text-sm">
+                    <p className="font-medium text-amber-800">
+                      Payment is {lateFeeInfo.daysLate} day
+                      {lateFeeInfo.daysLate === 1 ? "" : "s"} late
+                    </p>
+                    <p className="text-amber-700">
+                      Late fee: ₹{lateFeeInfo.rate}/day × {lateFeeInfo.daysLate}{" "}
+                      day{lateFeeInfo.daysLate === 1 ? "" : "s"} = ₹
+                      {lateFeeInfo.lateFee.toFixed(2)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddLateFeeToAmount}
+                    className="px-3 py-1.5 bg-amber-600 text-white rounded-md text-sm whitespace-nowrap"
+                  >
+                    + Add to amount
+                  </button>
+                </div>
+              )}
+
+              <div>
                 <label className="block text-sm font-medium mb-1">Transaction Reference (Optional)</label>
                 <input
                   type="text"
@@ -627,6 +721,8 @@ export default function NewFeeCollection() {
           selectedUniformItems={selectedUniformItems}
           paymentAmount={paymentAmount}
           paymentMethod={paymentMethod}
+          paymentDate={paymentDate}
+          lateFeeInfo={lateFeeInfo}
           onClose={() => setShowReceipt(false)}
         />
       )}
@@ -641,6 +737,8 @@ function ReceiptModal({
   selectedUniformItems,
   paymentAmount,
   paymentMethod,
+  paymentDate,
+  lateFeeInfo,
   onClose,
 }) {
   const totalFees = feeHeads
@@ -690,7 +788,11 @@ function ReceiptModal({
             </div>
             <div>
               <span className="text-gray-500">Date:</span>
-              <span className="ml-2">{new Date().toLocaleDateString()}</span>
+              <span className="ml-2">
+                {paymentDate
+                  ? new Date(paymentDate + "T00:00:00").toLocaleDateString()
+                  : new Date().toLocaleDateString()}
+              </span>
             </div>
           </div>
 
@@ -737,6 +839,15 @@ function ReceiptModal({
               <span className="text-gray-500">Payment Method:</span>
               <span className="capitalize">{paymentMethod}</span>
             </div>
+            {lateFeeInfo?.daysLate > 0 && (
+              <div className="flex justify-between text-amber-700">
+                <span>
+                  Late Fee ({lateFeeInfo.daysLate} day
+                  {lateFeeInfo.daysLate === 1 ? "" : "s"} @ ₹{lateFeeInfo.rate}/day):
+                </span>
+                <span>₹{lateFeeInfo.lateFee.toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-gray-500">Balance Due:</span>
               <span>₹{(total - parseFloat(paymentAmount)).toFixed(2)}</span>

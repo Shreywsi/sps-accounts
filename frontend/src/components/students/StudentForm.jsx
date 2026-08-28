@@ -534,6 +534,11 @@ export default function StudentForm({ student, onSuccess, onCancel }) {
             />
           </div>
 
+          {/* Monthly Fee, Cab/Transport Fee, and Annual Fee are managed in
+              Fee Structure (per class), not per student here. Fee Due Day
+              and Late Fee Per Day are school-wide policy, set once in
+              Fee Structure -> Fee Settings (next to Class Mappings). */}
+
           {/* Already-known custom fields (created earlier by anyone) */}
           {visibleCustomFieldDefs.length > 0 && (
             <div>

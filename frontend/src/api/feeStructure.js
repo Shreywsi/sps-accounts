@@ -76,6 +76,14 @@ export const updateClassMapping = (id, data) =>
 export const deleteClassMapping = (id) =>
   API.delete(`/fees/class-mappings/${id}/`);
 
+// Fee Settings (singleton - school-wide fee due day / late fee policy,
+// lives next to Class Mappings instead of being set per student)
+export const getFeeSettings = () =>
+  API.get("/fees/fee-settings/");
+
+export const updateFeeSettings = (data) =>
+  API.patch("/fees/fee-settings/", data);
+
 // Student Fee Assignments
 export const getStudentFeeAssignments = (params = {}) =>
   API.get("/fees/student-fee-assignments/", { params });

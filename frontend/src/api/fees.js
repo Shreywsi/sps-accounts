@@ -49,10 +49,7 @@ export const collectPayment = (data) =>
 // Monthly fee ledger - the source of truth for "which months has this
 // student paid". One row per student per calendar month.
 // NOTE: these hit apps.fees.simple_urls, registered at api/v1/fees/
-// (no "/simple/" segment - see backend/config/urls.py). getDashboardData
-// below uses "/fees/simple/dashboard/", which is a pre-existing path
-// mismatch in this codebase; these new endpoints intentionally use the
-// path that's actually wired up so they aren't broken from day one.
+// (no "/simple/" segment - see backend/config/urls.py).
 export const getStudentLedger = (studentId, year) =>
   API.get("/fees/ledger/", { params: { student: studentId, year } });
 
@@ -79,8 +76,12 @@ export const createPaymentAdjustment = (data) =>
   API.post("/fees/adjustments/", data);
 
 // Dashboard / reports
+// Backend route is registered at api/v1/fees/dashboard/ (see
+// apps/fees/simple_urls.py + config/urls.py) - there is no "/simple/"
+// segment. Calling the wrong path silently 404s and the dashboard falls
+// back to showing zeros everywhere, so keep this in sync with simple_urls.py.
 export const getDashboardData = () =>
-  API.get("/fees/simple/dashboard/");
+  API.get("/fees/dashboard/");
 
 export const getDueFeesReport = () =>
   API.get("/fees/reports/due-fees/");

@@ -12,3 +12,4 @@ from .fee_head import FeeHead
 from .uniform_fee_item import UniformFeeItem
 from .class_fee_mapping import ClassFeeMapping
 from .student_fee_assignment import StudentFeeAssignment
+from .fee_settings import FeeSettings

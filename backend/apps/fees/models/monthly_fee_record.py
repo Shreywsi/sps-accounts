@@ -114,7 +114,11 @@ class MonthlyFeeRecord(models.Model):
     def _due_date_for(student, year, month):
         import calendar
 
-        day = student.fee_due_day or 10
+        from apps.fees.models.fee_settings import FeeSettings
+
+        # The due day is school-wide policy (Fee Settings, next to Class
+        # Mappings), not a per-student value.
+        day = FeeSettings.get_solo().fee_due_day or 10
         last_day = calendar.monthrange(year, month)[1]
         day = min(day, last_day)
         return timezone.datetime(year, month, day).date()

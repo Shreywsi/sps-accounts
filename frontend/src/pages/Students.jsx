@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getStudents } from "../api/students";
-import { Trash2, Eye, Edit, Search } from "lucide-react";
+import { getStudents, setStudentActive } from "../api/students";
+import { Trash2, Eye, Edit, Search, Power, PowerOff } from "lucide-react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 
@@ -71,6 +71,27 @@ export default function Students() {
     setShowDeleteModal(true);
   };
 
+  const toggleActive = async (student, e) => {
+    e.stopPropagation(); // Prevent row click
+    const nextActive = !student.is_active;
+    try {
+      await setStudentActive(student.id, nextActive);
+      setStudents((prev) =>
+        prev.map((s) =>
+          s.id === student.id ? { ...s, is_active: nextActive } : s
+        )
+      );
+      toast.success(
+        nextActive
+          ? `${student.first_name} marked active`
+          : `${student.first_name} marked inactive`
+      );
+    } catch (error) {
+      toast.error("Failed to update student status");
+      console.error("Error updating student status:", error);
+    }
+  };
+
   const openStudent = (student) => {
     navigate(`/students/${student.id}`);
   };
@@ -129,6 +150,9 @@ export default function Students() {
                   Phone
                 </th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                  Status
+                </th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">
                   Actions
                 </th>
               </tr>
@@ -136,7 +160,7 @@ export default function Students() {
             <tbody>
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-8 text-gray-500">
+                  <td colSpan="7" className="text-center py-8 text-gray-500">
                     No students found
                   </td>
                 </tr>
@@ -175,6 +199,18 @@ export default function Students() {
                     </td>
 
                     <td className="py-3 px-4">
+                      {student.is_active ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                          Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-600">
+                          Inactive
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <button 
                           onClick={() => openStudent(student)}
@@ -189,6 +225,21 @@ export default function Students() {
                           title="Edit Student"
                         >
                           <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => toggleActive(student, e)}
+                          className={
+                            student.is_active
+                              ? "p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition"
+                              : "p-2 text-green-600 hover:bg-green-50 rounded-lg transition"
+                          }
+                          title={student.is_active ? "Mark Inactive" : "Mark Active"}
+                        >
+                          {student.is_active ? (
+                            <PowerOff className="w-4 h-4" />
+                          ) : (
+                            <Power className="w-4 h-4" />
+                          )}
                         </button>
                         <button
                           onClick={(e) => confirmDelete(student, e)}

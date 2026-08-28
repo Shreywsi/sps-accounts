@@ -11,6 +11,10 @@ class SimplePaymentSerializer(serializers.ModelSerializer):
     received_by_name = serializers.CharField(source="received_by.username", read_only=True, allow_null=True)
     is_late = serializers.SerializerMethodField()
     is_locked = serializers.BooleanField(read_only=True)
+    # late_fee_amount: live calculation at the student's *current* rate -
+    # useful for previewing a payment before it's saved. Once saved, the
+    # permanent charge is in late_fee_days / late_fee_charged below and
+    # won't drift if the student's rate changes later.
     late_fee_amount = serializers.SerializerMethodField()
 
     def get_is_late(self, obj):
@@ -51,6 +55,8 @@ class SimplePaymentSerializer(serializers.ModelSerializer):
             "is_late",
             "is_locked",
             "late_fee_amount",
+            "late_fee_days",
+            "late_fee_charged",
             "created_at",
             "updated_at",
         ]
@@ -66,6 +72,8 @@ class SimplePaymentSerializer(serializers.ModelSerializer):
             "is_late",
             "is_locked",
             "late_fee_amount",
+            "late_fee_days",
+            "late_fee_charged",
         ]
 
     def validate(self, attrs):

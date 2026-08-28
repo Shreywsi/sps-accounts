@@ -21,11 +21,13 @@ import {
   deleteUniformItem,
   updateClassMapping,
   deleteClassMapping,
+  getFeeSettings,
+  updateFeeSettings,
 } from "../api/feeStructure";
 import { useAuth } from "../context/AuthContext";
 import { getClasses } from "../api/academics";
 
-const TABS = ["Day Scholar", "Hostel", "Uniform", "Class Mappings"];
+const TABS = ["Day Scholar", "Hostel", "Uniform", "Class Mappings", "Fee Settings"];
 
 export default function FeeStructureManagement() {
   const { user } = useAuth();
@@ -55,6 +57,11 @@ export default function FeeStructureManagement() {
   const [mappingGroups, setMappingGroups] = useState([]); // all groups (both boarding types) for the mapping dropdowns
   const [schoolClasses, setSchoolClasses] = useState([]);
 
+  // Fee Settings (singleton - school-wide due day / late fee, not tied
+  // to a session, so it isn't cleared/reloaded when selectedSession changes)
+  const [feeSettings, setFeeSettings] = useState(null);
+  const [savingFeeSettings, setSavingFeeSettings] = useState(false);
+
   // Modals
   const [showFeeHeadModal, setShowFeeHeadModal] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
@@ -75,7 +82,7 @@ export default function FeeStructureManagement() {
   }, []);
 
   useEffect(() => {
-    if (selectedSession) {
+    if (selectedSession || activeTab === "Fee Settings") {
       loadSessionData();
     }
     // uniformGender must be a dependency here - otherwise switching
@@ -103,6 +110,19 @@ export default function FeeStructureManagement() {
   };
 
   const loadSessionData = async () => {
+    // Fee Settings is a single school-wide row, not scoped to a session,
+    // so it loads even if no session has been selected yet.
+    if (activeTab === "Fee Settings") {
+      try {
+        const settingsRes = await getFeeSettings();
+        setFeeSettings(settingsRes.data);
+      } catch (error) {
+        toast.error("Failed to load fee settings");
+        console.error(error);
+      }
+      return;
+    }
+
     if (!selectedSession) return;
 
     try {
@@ -305,6 +325,24 @@ export default function FeeStructureManagement() {
     }
   };
 
+  const handleSaveFeeSettings = async (values) => {
+    try {
+      setSavingFeeSettings(true);
+      const data = {
+        fee_due_day: parseInt(values.fee_due_day, 10),
+        late_fee_per_day: parseFloat(values.late_fee_per_day),
+      };
+      const res = await updateFeeSettings(data);
+      setFeeSettings(res.data);
+      toast.success("Fee settings updated successfully");
+    } catch (error) {
+      toast.error("Failed to save fee settings");
+      console.error(error);
+    } finally {
+      setSavingFeeSettings(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -319,7 +357,7 @@ export default function FeeStructureManagement() {
         <div>
           <h1 className="text-2xl font-semibold">Fee Structure Management</h1>
           <p className="text-sm text-gray-500">
-            Manage fee structures, uniform pricing, and class mappings
+            Manage fee structures, uniform pricing, class mappings, and fee settings
           </p>
         </div>
 
@@ -489,6 +527,15 @@ export default function FeeStructureManagement() {
             setShowMappingModal(true);
           }}
           onDeleteMapping={handleDeleteMapping}
+        />
+      )}
+
+      {activeTab === "Fee Settings" && (
+        <FeeSettingsTab
+          settings={feeSettings}
+          isAdmin={isAdmin}
+          saving={savingFeeSettings}
+          onSave={handleSaveFeeSettings}
         />
       )}
 
@@ -919,6 +966,106 @@ function ClassMappingsTab({ mappings, feeGroups, schoolClasses, isAdmin, onAddMa
           to its fee group so students in that class show the right fees.
         </div>
       )}
+    </div>
+  );
+}
+
+function FeeSettingsTab({ settings, isAdmin, saving, onSave }) {
+  const [feeDueDay, setFeeDueDay] = useState("10");
+  const [lateFeePerDay, setLateFeePerDay] = useState("10");
+
+  // Populate the form once the singleton settings row has loaded (or
+  // whenever it's refreshed after a save elsewhere).
+  useEffect(() => {
+    if (settings) {
+      setFeeDueDay(String(settings.fee_due_day ?? "10"));
+      setLateFeePerDay(String(settings.late_fee_per_day ?? "10"));
+    }
+  }, [settings]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave({ fee_due_day: feeDueDay, late_fee_per_day: lateFeePerDay });
+  };
+
+  if (!settings) {
+    return (
+      <div className="flex items-center justify-center h-32">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-xl space-y-4">
+      <div className="text-sm text-gray-500 flex items-start gap-2">
+        <Info size={16} className="mt-0.5 flex-shrink-0" />
+        <p>
+          These apply to every student, school-wide - there's no per-student
+          due day or late fee anymore. Changing them here updates the late
+          fee shown on every student's Fees page immediately.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="bg-white border rounded-lg p-6 space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Fee Due Day
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="31"
+              value={feeDueDay}
+              onChange={(e) => setFeeDueDay(e.target.value)}
+              disabled={!isAdmin}
+              className="w-full border rounded-md px-3 py-2 text-sm disabled:bg-gray-50 disabled:text-gray-500"
+              required
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Day of the month fees are due, e.g. 10 for the 10th.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Late Fee Per Day (₹)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={lateFeePerDay}
+              onChange={(e) => setLateFeePerDay(e.target.value)}
+              disabled={!isAdmin}
+              className="w-full border rounded-md px-3 py-2 text-sm disabled:bg-gray-50 disabled:text-gray-500"
+              required
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Charged for every day paid after the due day, e.g. ₹10 per
+              day late. No late fee is charged once a student's balance
+              is fully paid.
+            </p>
+          </div>
+        </div>
+
+        {isAdmin ? (
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save Fee Settings"}
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400">
+            Only an admin can change fee settings.
+          </p>
+        )}
+      </form>
     </div>
   );
 }

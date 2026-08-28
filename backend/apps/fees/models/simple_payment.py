@@ -137,6 +137,18 @@ class SimplePayment(models.Model):
         default=timezone.localdate,
     )
 
+    late_fee_days = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of days late this payment was made, snapshotted at creation time.",
+    )
+
+    late_fee_charged = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0,
+        help_text="Late fee amount snapshotted at creation time (days_late x rate at that time).",
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
@@ -168,12 +180,16 @@ class SimplePayment(models.Model):
     @property
     def is_late(self):
         """
-        Check if payment was made after the student's fee due day.
+        Check if payment was made after the school-wide fee due day
+        (Fee Settings, next to Class Mappings) - the due day is school
+        policy, not a per-student value.
         """
-        if not self.student.fee_due_day:
+        from apps.fees.models.fee_settings import FeeSettings
+
+        due_day = FeeSettings.get_solo().fee_due_day
+        if not due_day:
             return False
 
-        due_day = self.student.fee_due_day
         payment_day = self.payment_date.day
 
         return payment_day > due_day
@@ -181,13 +197,17 @@ class SimplePayment(models.Model):
     @property
     def late_fee_amount(self):
         """
-        Calculate late fee based on the number of days late.
+        Calculate late fee based on the number of days late, using the
+        school-wide late fee rate from Fee Settings.
         """
         if not self.is_late:
             return 0
 
-        due_day = self.student.fee_due_day
+        from apps.fees.models.fee_settings import FeeSettings
+
+        settings = FeeSettings.get_solo()
+        due_day = settings.fee_due_day
         payment_day = self.payment_date.day
         days_late = payment_day - due_day
 
-        return float(self.student.late_fee_per_day) * days_late
+        return float(settings.late_fee_per_day) * days_late

@@ -9,3 +9,4 @@ from .fee_head import FeeHeadSerializer
 from .uniform_fee_item import UniformFeeItemSerializer
 from .class_fee_mapping import ClassFeeMappingSerializer
 from .student_fee_assignment import StudentFeeAssignmentSerializer
+from .fee_settings import FeeSettingsSerializer

@@ -65,6 +65,16 @@ class FinancialDashboardAPIView(APIView):
         
         monthly_income = income_queryset.aggregate(total=Sum('amount'))['total'] or Decimal("0.00")
 
+        # Late fees are charged on top of the fee amount and snapshotted
+        # onto each SimplePayment at creation time (see
+        # SimplePaymentViewSet.perform_create) - sum those separately so
+        # admins can see how much of the period's collections was late
+        # fees vs. the fee itself.
+        late_fees_collected = income_queryset.aggregate(
+            total=Sum('late_fee_charged')
+        )['total'] or Decimal("0.00")
+        late_payments_count = income_queryset.filter(late_fee_days__gt=0).count()
+
         # Calculate expenses this period
         expenses_queryset = Expense.objects.filter(
             expense_date__gte=start_date,
@@ -170,6 +180,8 @@ class FinancialDashboardAPIView(APIView):
             "total_collected": float(total_collected),
             "total_due": float(total_due),
             "pending_students": pending_students,
+            "late_fees_collected": float(late_fees_collected),
+            "late_payments_count": late_payments_count,
             "recent_payments": list(recent_payments),
             "week_received": float(total_for(week_start, "INCOME")),
             "week_spent": float(total_for(week_start, "EXPENSE")),

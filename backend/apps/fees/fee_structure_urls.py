@@ -7,6 +7,7 @@ from apps.fees.views.fee_structure_new import (
     UniformFeeItemViewSet,
     ClassFeeMappingViewSet,
     StudentFeeAssignmentViewSet,
+    FeeSettingsView,
 )
 
 router = DefaultRouter()
@@ -18,5 +19,8 @@ router.register(r"class-mappings", ClassFeeMappingViewSet, basename="class-mappi
 router.register(r"student-fee-assignments", StudentFeeAssignmentViewSet, basename="student-fee-assignments")
 
 urlpatterns = [
+    # Singleton settings endpoint - registered before the router include so
+    # it doesn't need (and can't get) a trailing /<pk>/ segment.
+    path("fee-settings/", FeeSettingsView.as_view(), name="fee-settings"),
     path("", include(router.urls)),
 ]

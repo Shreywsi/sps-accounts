@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, X, Printer, ChevronDown, ChevronUp, Info } from "lucide-react";
+import { Check, X, Printer, ChevronDown, ChevronUp, Info, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   getClassMappingByClass,
@@ -7,6 +7,7 @@ import {
   getUniformItems,
   createFeeAssignmentFromTemplate,
   getActiveFeeSession,
+  getFeeSettings,
 } from "../../api/feeStructure";
 import { recordMonthlyPayment } from "../../api/fees";
 
@@ -44,6 +45,17 @@ export default function FeeCollectionPanel({ student }) {
   const [uniformItems, setUniformItems] = useState([]);
   const [uniformGender, setUniformGender] = useState("boys");
   const [selectedUniformItems, setSelectedUniformItems] = useState({});
+
+  // School-wide fee due day / late fee rate (Fee Structure -> Fee
+  // Settings, next to Class Mappings) - loaded once, independent of
+  // which student is being viewed.
+  const [feeSettings, setFeeSettings] = useState(null);
+
+  useEffect(() => {
+    getFeeSettings()
+      .then((res) => setFeeSettings(res.data))
+      .catch((err) => console.error("Failed to load fee settings:", err));
+  }, []);
 
   // When the student's gender is known (MALE/FEMALE), the uniform list is
   // locked to that gender - the operator shouldn't be able to accidentally
@@ -160,7 +172,26 @@ export default function FeeCollectionPanel({ student }) {
       }
     });
 
+    total += getLateFeeAmount();
+
     return total;
+  };
+
+  // Late fee for today, for this student. student.late_fee_due is
+  // computed server-side (Student.late_fee_due) from the school-wide
+  // Fee Settings (due day + rate) and is already 0 whenever the student
+  // has no outstanding balance - i.e. paid before the due day, or paid
+  // in full since. There's nothing to recompute here, just read it.
+  const getLateFeeAmount = () => parseFloat(student?.late_fee_due || 0);
+
+  // Purely for the "why" text next to the late fee line - how many days
+  // past the due day today is, using the school-wide due day.
+  const getDaysLate = () => {
+    if (!feeSettings?.fee_due_day) return 0;
+    const today = new Date();
+    const dueDay = feeSettings.fee_due_day;
+    if (today.getDate() <= dueDay) return 0;
+    return today.getDate() - dueDay;
   };
 
   const calculateOneTimeFees = () =>
@@ -410,13 +441,46 @@ export default function FeeCollectionPanel({ student }) {
           {/* Total Summary */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
               <div className="space-y-2">
+                {feeSettings && (
+                  <div className="flex justify-between text-sm text-gray-600 border-b border-blue-100 pb-2 mb-1">
+                    <span className="flex items-center gap-1">
+                      {getLateFeeAmount() > 0 && (
+                        <AlertTriangle size={14} className="text-amber-500" />
+                      )}
+                      Late Fee
+                      {getDaysLate() > 0 && getLateFeeAmount() > 0 && (
+                        <span className="text-gray-400">
+                          ({getDaysLate()} day{getDaysLate() === 1 ? "" : "s"}{" "}
+                          past the {feeSettings.fee_due_day}
+                          {feeSettings.fee_due_day === 1
+                            ? "st"
+                            : feeSettings.fee_due_day === 2
+                            ? "nd"
+                            : feeSettings.fee_due_day === 3
+                            ? "rd"
+                            : "th"}{" "}
+                          due day)
+                        </span>
+                      )}
+                      {getLateFeeAmount() === 0 && (
+                        <span className="text-green-600">
+                          (no balance due — paid on time)
+                        </span>
+                      )}
+                    </span>
+                    <span className={getLateFeeAmount() > 0 ? "text-amber-600 font-medium" : ""}>
+                      ₹{getLateFeeAmount().toFixed(2)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total Due:</span>
                   <span>₹{calculateTotal().toFixed(2)}</span>
                 </div>
                 <div className="text-sm text-gray-600">
                   <Info size={14} className="inline mr-1" />
-                  This includes one-time, annual, monthly fees, and uniform
+                  This includes one-time, annual, monthly fees, uniform, and
+                  any late fee currently due
                 </div>
               </div>
             </div>
@@ -515,6 +579,7 @@ export default function FeeCollectionPanel({ student }) {
           feeHeads={feeHeads}
           uniformItems={uniformItems}
           selectedUniformItems={selectedUniformItems}
+          lateFeeAmount={getLateFeeAmount()}
           paymentAmount={paymentAmount}
           paymentMethod={paymentMethod}
           onClose={() => setShowReceipt(false)}
@@ -529,6 +594,7 @@ function ReceiptModal({
   feeHeads,
   uniformItems,
   selectedUniformItems,
+  lateFeeAmount = 0,
   paymentAmount,
   paymentMethod,
   onClose,
@@ -541,7 +607,7 @@ function ReceiptModal({
     .filter((item) => selectedUniformItems[item.id])
     .reduce((sum, item) => sum + parseFloat(item.price), 0);
 
-  const total = totalFees + uniformTotal;
+  const total = totalFees + uniformTotal + parseFloat(lateFeeAmount || 0);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -602,6 +668,14 @@ function ReceiptModal({
                       <td className="py-1 text-right">₹{item.price}</td>
                     </tr>
                   ))}
+                {parseFloat(lateFeeAmount || 0) > 0 && (
+                  <tr>
+                    <td className="py-1 text-amber-600">Late Fee</td>
+                    <td className="py-1 text-right text-amber-600">
+                      ₹{parseFloat(lateFeeAmount).toFixed(2)}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

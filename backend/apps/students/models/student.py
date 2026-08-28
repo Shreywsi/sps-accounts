@@ -157,16 +157,22 @@ class Student(models.Model):
         help_text="Transport/Cab fee amount"
     )
 
+    # Deprecated: fee due day / late fee per day are now school-wide
+    # policy stored on apps.fees.models.FeeSettings (one row, edited from
+    # the "Fee Settings" tab next to Class Mappings) rather than set per
+    # student. These columns are kept only so existing data isn't lost;
+    # the API no longer accepts writes to them (see StudentSerializer)
+    # and late_fee_due below reads from FeeSettings, not these fields.
     fee_due_day = models.PositiveIntegerField(
         default=10,
-        help_text="Day of month when fee is due (e.g., 10 for 10th of every month)"
+        help_text="Deprecated - see apps.fees.models.FeeSettings.fee_due_day instead."
     )
 
     late_fee_per_day = models.DecimalField(
         max_digits=8,
         decimal_places=2,
         default=10,
-        help_text="Late fee charged per day after due date"
+        help_text="Deprecated - see apps.fees.models.FeeSettings.late_fee_per_day instead."
     )
 
     additional_fees = models.JSONField(
@@ -271,14 +277,29 @@ class Student(models.Model):
 
     @property
     def late_fee_due(self):
-        """Calculate late fee based on payment due date"""
+        """
+        Calculate today's late fee for this student.
+
+        The due day and the per-day rate are school-wide policy (set once
+        in Fee Settings, next to Class Mappings) rather than per-student
+        values, so they're read from FeeSettings instead of this model.
+        If the student has no outstanding balance - i.e. they paid before
+        the due day, or have paid in full since - no late fee applies,
+        no matter how many days have passed.
+        """
         from datetime import date
-        if not self.fee_due_day:
+        from apps.fees.models.fee_settings import FeeSettings
+
+        if self.fee_balance <= 0:
             return 0
-        
+
+        settings = FeeSettings.get_solo()
+        due_day = settings.fee_due_day
+        if not due_day:
+            return 0
+
         today = date.today()
-        due_day = self.fee_due_day
-        
+
         # Calculate last due date
         if today.day > due_day:
             # Payment is late this month
@@ -287,9 +308,9 @@ class Student(models.Model):
         else:
             # Payment not yet due this month
             days_late = 0
-        
+
         if days_late > 0:
-            return days_late * float(self.late_fee_per_day)
+            return days_late * float(settings.late_fee_per_day)
         return 0
 
     def calculate_total_fee_due(self):

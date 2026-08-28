@@ -1,5 +1,6 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
@@ -11,6 +12,7 @@ from apps.fees.models import (
     UniformFeeItem,
     ClassFeeMapping,
     StudentFeeAssignment,
+    FeeSettings,
 )
 from apps.fees.serializers.fee_session import FeeSessionSerializer
 from apps.fees.serializers.fee_category_group import FeeCategoryGroupSerializer
@@ -18,6 +20,7 @@ from apps.fees.serializers.fee_head import FeeHeadSerializer
 from apps.fees.serializers.uniform_fee_item import UniformFeeItemSerializer
 from apps.fees.serializers.class_fee_mapping import ClassFeeMappingSerializer
 from apps.fees.serializers.student_fee_assignment import StudentFeeAssignmentSerializer
+from apps.fees.serializers.fee_settings import FeeSettingsSerializer
 from apps.notifications.utils import notify_admins
 
 import re
@@ -237,6 +240,30 @@ class ClassFeeMappingViewSet(viewsets.ModelViewSet):
         return Response({"detail": "No fee mapping found for this class"}, status=status.HTTP_404_NOT_FOUND)
 
 
+class FeeSettingsView(RetrieveUpdateAPIView):
+    """
+    Singleton endpoint for school-wide fee policy: the day of the month
+    fees are due, and the late fee charged per day after that. Lives
+    alongside class mappings (same page, "Fee Settings" tab) since both
+    describe school-wide fee policy rather than a single student or fee
+    head - there is exactly one row, not one per student.
+
+    GET  /api/v1/fees/fee-settings/  -> current settings (created with
+                                         defaults the first time it's read)
+    PATCH/PUT /api/v1/fees/fee-settings/ -> update settings (admin only)
+    """
+
+    serializer_class = FeeSettingsSerializer
+
+    def get_permissions(self):
+        if self.request.method in ("PUT", "PATCH"):
+            return [IsAuthenticated(), IsAdminRole()]
+        return [IsAuthenticated(), IsAdminOrOperator()]
+
+    def get_object(self):
+        return FeeSettings.get_solo()
+
+
 class StudentFeeAssignmentViewSet(viewsets.ModelViewSet):
     queryset = StudentFeeAssignment.objects.select_related("student", "session").all()
     serializer_class = StudentFeeAssignmentSerializer
@@ -262,12 +289,25 @@ class StudentFeeAssignmentViewSet(viewsets.ModelViewSet):
             student = Student.objects.get(id=student_id)
             session = FeeSession.objects.get(id=session_id)
 
-            # Get class mapping
+            # Get class mapping. student.school_class is a FK to
+            # SchoolClass (free-text name like "Class 2"), while
+            # ClassFeeMapping.class_name is seeded with Roman numerals
+            # ("I".."XII") plus "Pre-Nursery"/"Nursery"/"KG", so an exact
+            # match fails for every numbered class - normalize both sides
+            # before comparing, same as by_class() above.
             from apps.fees.models import ClassFeeMapping
-            mapping = ClassFeeMapping.objects.filter(
-                session=session,
-                class_name=student.school_class_name or student.school_class
-            ).first()
+            student_class_name = (
+                student.school_class.name if student.school_class else ""
+            )
+
+            class_mappings = ClassFeeMapping.objects.filter(session=session)
+            mapping = class_mappings.filter(class_name=student_class_name).first()
+            if not mapping:
+                target = _normalize_class_name(student_class_name)
+                for candidate in class_mappings:
+                    if _normalize_class_name(candidate.class_name) == target:
+                        mapping = candidate
+                        break
 
             if not mapping:
                 return Response(

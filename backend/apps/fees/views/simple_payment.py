@@ -44,6 +44,15 @@ class SimplePaymentViewSet(viewsets.ModelViewSet):
 
         payment = serializer.save(receipt_number=receipt_number, received_by=self.request.user)
 
+        # Snapshot the late fee (days late + amount, at the rate in effect
+        # right now) permanently onto the payment record. This is computed
+        # once, here, rather than left as a live property so that editing
+        # the student's late_fee_per_day later can't rewrite the charge on
+        # an already-recorded receipt.
+        payment.late_fee_days = payment.days_late
+        payment.late_fee_charged = payment.late_fee_amount
+        payment.save(update_fields=["late_fee_days", "late_fee_charged"])
+
         log_activity(
             actor=self.request.user,
             action_type="CREATE_PAYMENT",

@@ -23,3 +23,6 @@ export const updateStudent = (id, data) =>
 
 export const deleteStudent = (id) =>
   API.delete(`/students/${id}/`);
+
+export const setStudentActive = (id, isActive) =>
+  API.patch(`/students/${id}/`, { is_active: isActive });
